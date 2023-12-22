@@ -1,0 +1,6 @@
+time, queryset
+9849.901176929474, {'AEIS;;;','AAON;;; AEIS;;;','BIDU;;; AEIS;;;','BIDU;;;','CMCO;;; AEIS;;;'}
+9698.336407899857, {'AEIS;;;','AAON;;; AEIS;;;','BIDU;;; AEIS;;;','BIDU;;;','CMCO;;; AEIS;;;'}
+10023.828931331635, {'AEIS;;;','AAON;;; AEIS;;;','BIDU;;; AEIS;;;','BIDU;;;','CMCO;;; AEIS;;;'}
+10042.886401176453, {'AEIS;;;','AAON;;; AEIS;;;','BIDU;;; AEIS;;;','BIDU;;;','CMCO;;; AEIS;;;'}
+7114.368646860123, {'AEIS;;;','AAON;;; AEIS;;;','BIDU;;; AEIS;;;','BIDU;;;','CMCO;;; AEIS;;;'}
