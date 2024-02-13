@@ -92,7 +92,7 @@ def rl_compare():
         queryset_object = df.loc[(df.iteration == mod)&(df.algorithm=='rl')].queryset.values[0]
         queryset_bu = df.loc[(df.iteration == mod)&(df.algorithm=='uni')]['queryset'].values[0]
         desc_queryset = set()
-        for querystring in queryset_bu.split("'"):
+        for querystring in queryset_bu:
             if ';' in querystring:
                 desc_queryset.add(querystring)
         for querystring in queryset_object.split("'"):
