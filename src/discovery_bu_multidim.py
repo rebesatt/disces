@@ -10,7 +10,6 @@ from math import ceil
 import numpy as np
 
 from sample import Sample
-from discovery_bottom_up import bottom_up_discovery
 from discovery_bu_pts_multidim import discovery_bu_pts_multidim
 from query_multidim import MultidimQuery
 from query import Query
