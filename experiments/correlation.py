@@ -40,6 +40,10 @@ def char_correlation(overwrite: bool = False) -> pd.DataFrame:
     """
     file_path = '../experiments/experiment_results/corr_data.csv'
     result_path = '../experiments/experiment_results/corr_results.csv'
+    path = '../experiments/experiment_results'
+    if not os.path.isdir(path):
+        os.mkdir(path)
+
     if not os.path.isfile(result_path) or overwrite:
         discoveries = ['uni', 'sep', 'ups', 'sps']
         result_list = []

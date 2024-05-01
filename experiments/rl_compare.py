@@ -126,6 +126,9 @@ def rl_compare():
 if __name__ == "__main__":
     df_rl = rl_compare()
     file_name = 'rl_compare'
+    result_path = '../experiments/experiment_results'
+    if not os.path.isdir(result_path):
+        os.mkdir(result_path)
     df_rl.to_csv(f'../experiments/experiment_results/{file_name}_results.csv')
     generate_plots(dataframe=df_rl, file_name=file_name, x='iterations', y='time', hue='algorithm', kind='rl_compare')
 

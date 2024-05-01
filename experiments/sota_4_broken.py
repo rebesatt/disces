@@ -165,6 +165,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     file_path = f'../experiments/experiment_results/sota.csv'
+    result_path = '../experiments/experiment_results'
+    if not os.path.isdir(result_path):
+        os.mkdir(result_path)
+
     max_query_length = 4
     if not os.path.isfile(file_path):
         df_sota = sota(overwrite=False, max_query_length=max_query_length, b_run_ilm=args.b_run_extended_il_miner)

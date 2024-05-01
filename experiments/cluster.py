@@ -40,6 +40,10 @@ def clustering(sample_size:int, trace_length:int, overwrite: bool = False, max_q
     LOGGER.info(f'Running experiment for clustering')
     file_name = f'clustering'
     file_path = f'../experiments/experiment_results/{file_name}.csv'
+    result_path = '../experiments/experiment_results'
+    if not os.path.isdir(result_path):
+        os.mkdir(result_path)
+
     results = []
     if not os.path.isfile(file_path) or overwrite:
         repetition = 5

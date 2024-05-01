@@ -40,6 +40,10 @@ def exclude_types(overwrite: bool = False, max_query_length = -1) -> pd.DataFram
     LOGGER.info(f'Running experiment for domain exclusion')
     file_name = f'exclude_types'
     file_path = f'../experiments/experiment_results/{file_name}.csv'
+    result_path = '../experiments/experiment_results'
+    if not os.path.isdir(result_path):
+        os.mkdir(result_path)
+
     results = []
     if not os.path.isfile(file_path) or overwrite:
         repetition = 5

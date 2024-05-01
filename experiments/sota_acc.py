@@ -141,6 +141,10 @@ if __name__ == "__main__":
     file_path = '../experiments/experiment_results/acc.csv'
     file_name = 'sota_acc'
     acc_file_path = f'../experiments/experiment_results/{file_name}.csv'
+    result_path = '../experiments/experiment_results'
+    if not os.path.isdir(result_path):
+        os.mkdir(result_path)
+
     max_query_length = 4
     if not os.path.isfile(file_path):
         dataframe = sota_acc(overwrite=False, max_query_length=max_query_length)
