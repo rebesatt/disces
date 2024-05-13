@@ -378,7 +378,6 @@ def match_algos(sample_list: list, results: list, iterations: int, j: int|str, m
     for idx, _ in enumerate(sample._sample):
         sum_pattern_dom_list = []
         sum_type_dom_list = []
-        sum_type_dom_list = []
         for dom_sample in dim_sample_dict.values():
             supported_alphabet = dom_sample.get_sample_supported_typeset()
             trace_list = dom_sample._sample[idx].split()
@@ -562,7 +561,7 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
     plt.style.reload_library()
     plt.style.use(['fivethirtyeight'])
     plt.rcParams['lines.linewidth'] = 4
-    plt.rcParams['font.size'] = 20
+    # plt.rcParams['font.size'] = 20
     plt.rcParams["savefig.facecolor"] = 'white'
     plt.rcParams["axes.facecolor"] = 'white'
     plt.rcParams["figure.facecolor"]= "white"
@@ -579,19 +578,30 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
     plot_path = 'experiment_results'
     if not os.path.isdir(plot_path):
         os.mkdir(plot_path)
-    hatches = {'uni':'.',
-                   'sep': '/',
-                   'ups': '|',
-                   'sps': '//',
-                   'ilm_lossy': 'x',
-                   'ilm': 'o',
-                   'rl': '/',}
-
+    
+    dataframe.replace({'uni': 'D-U-C', 'sep': 'D-U-S', 'ilm': 'ILM',
+                       'ups': 'B-S-C', 'sps': 'B-S-S', 'rl':'RL'}, inplace=True)
+    hatches = {'D-U-C':'',
+                   'D-U-S': '',
+                   'B-S-C': '',
+                   'B-S-S': '',
+                   'ilm_lossy': '',
+                   'ILM': '',
+                   'RL': ''}
+#                   'D-U-S': '/',
+#                   'B-S-C': '|',
+#                   'B-S-S': '//',
+#                   'ilm_lossy': 'x',
+#                   'ILM': 'o',
+#                   'RL': 'x',}
     if kind in {'synt_queries'}:
+
         grid = sns.catplot(data=dataframe, y=y, x=x, hue=hue , kind='box', col=col, col_wrap=col_wrap)
         grid.set(yscale='log')
         grid.savefig(f'experiment_results/{file_name}.pdf')
     elif kind in ['sota']:
+        dataframe.rename(columns={'time':'time[s]'}, inplace=True)
+        y='time[s]'
         plt.rcParams['font.size'] = 20
         fig, grid = plt.subplots(1,2, layout='constrained', figsize=(15, 3))
         fig2 = plt.figure(figsize=(25, 6))
@@ -641,36 +651,44 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
             if idx == 0:
                 sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax0)
                 # ax0.bar_label(ax0.containers[4], fmt='timeout', label_type='edge')
-                if 'ilm' in adatped_dataframe['algorithm'].unique():
-                    for container in ax0.containers[4]:
-                        if isnan(container._height):
-                            position = container._x0 #+ container._width/2
-                            ax0.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
-    
+                if 'ILM' in adatped_dataframe['algorithm'].unique():
+                    # for container in ax0.containers[4]:
+                    #     print(container._x0)
+                    #     if isnan(container._height):
+                    #         position = container._x0 #+ container._width/2
+                    #         ax0.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
+                    positions = [1.24,3.24,5.24]
+                    for position in positions:
+                        ax0.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
+                    
             else:
                 sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax1)
                 sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax2)
                 # ax2.bar_label(ax2.containers[4], fmt='timeout', label_type='edge')
-                if 'ilm' in adatped_dataframe['algorithm'].unique():
-                    for container in ax2.containers[4]:
-                        if isnan(container._height):
-                            position = container._x0 #+ container._width/4
-                            ax2.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
+                if 'ILM' in adatped_dataframe['algorithm'].unique():
+                    # for container in ax2.containers[4]:
+                    #     print(container._x0)
+                    #     if isnan(container._height):
+                    #         position = container._x0 #+ container._width/4
+                    #         ax2.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
+                    positions = [1.24,3.24,5.24]
+                    for position in positions:
+                        ax2.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
                 data_subplot = adatped_dataframe.loc[adatped_dataframe['mode'] == 'google']
                 sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax3)
             ax3_count = 0
             for count, (i, p) in enumerate(zip(cart_product, grid[idx].patches)):
                 
                 if count <=5:
-                    hatch = 'uni'
+                    hatch = 'D-U-C'
                 elif count <=11:
-                    hatch = 'sep'
+                    hatch = 'D-U-S'
                 elif count <=17:
-                    hatch = 'ups'
+                    hatch = 'B-S-C'
                 elif count <=23:
-                    hatch = 'sps'
+                    hatch = 'B-S-S'
                 else:
-                    hatch = 'ilm'
+                    hatch = 'ILM'
                     
                 p.set(hatch=hatches[hatch])
                 if idx == 0:
@@ -679,6 +697,12 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
                     grid[idx].set(xlabel='Google')
                     ax0.set(xlabel='Google')
                     ax0.patches[count].set(hatch=hatches[hatch])
+
+                    ax0.patches[27].set(hatch=hatches['D-U-C'])
+                    ax0.patches[28].set(hatch=hatches['D-U-S'])
+                    ax0.patches[29].set(hatch=hatches['B-S-C'])
+                    ax0.patches[30].set(hatch=hatches['B-S-S'])
+                    ax0.patches[31].set(hatch=hatches['ILM'])
 
                     # plt.bar_label(splot.containers[0], label_type='center')
                     # fig.legend(loc='outside right')
@@ -707,10 +731,11 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
                     # sns.move_legend(ax1, "upper left", bbox_to_anchor=(1, 1))
 
                     # fig.legend()
-        
+        fig2.supylabel('time[s]', fontsize=35)
         fig2.subplots_adjust(wspace=0, hspace=0.1)
         # fig.savefig(f'experiments/results/plots/{file_name}.pdf')
-        fig2.savefig(f'../experiments/experiment_results/{file_name}_broken.pdf')
+        fig2.savefig(f'../experiments/experiment_results/{file_name}_broken_new.pdf')
+
 
     elif kind in ['sota_acc']:
         sns.set_context("paper", font_scale=3)
@@ -727,61 +752,86 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
         grid.savefig(f'experiment_results/{file_name}.pdf')
 
     elif kind in ['cluster', 'exclude']:
-        grid = sns.relplot(data=dataframe, y=y, x=x, hue=hue, style=hue, err_style='bars',
-                           kind='line', col=col, col_wrap=col_wrap, facet_kws=facet_kws)
+        sns.set_context("paper", font_scale=3)
+        plt.rcParams['lines.linewidth'] = 4
 
+        plt.rcParams['font.size'] = 40
+        if kind == 'cluster':
+            dataframe.replace({'google': 'G1', 'finance': 'F1'}, inplace=True)
+        else:
+            dataframe.replace({'google': 'G3', 'finance': 'F3'}, inplace=True)
+        grid = sns.relplot(data=dataframe, y=y, x=x, hue=hue, style=hue, err_style='bars',
+                           kind='line', col=col, col_wrap=1, facet_kws=facet_kws, legend=False)
+        
         grid.set(xlabel='')  # remove the axis label
-        grid.set_titles("{col_name}")
+        grid.set_titles("{col_name}", fontsize=30)
 
         if kind == 'cluster':
-            grid.set(yscale='log', yticks=[1, 10, 100])
+            grid.set(yscale='log', yticks=[1, 10])
 
-        sns.move_legend(grid, "upper left", bbox_to_anchor=(.8, .99))
+        # sns.move_legend(grid, "upper left", bbox_to_anchor=(.8, .99))
         plt.subplots_adjust(wspace = 0.1)
 
         grid.savefig(f'experiment_results/{file_name}.pdf')
+    elif kind in ['synt']:
+        dataframe.rename(columns={'time':'time[s]'}, inplace=True)
+        dataframe.replace({'streams': r'$E_1:|D|$', 'stream length': r'$E_2:|S|$', 'domain size': r'$E_3: |\mathcal{A}|$',
+                       'types': r'$E_4: |\Gamma_D|$', r'max type': r'$E_5: \rho_S$', 'pattern sum':r'$E_6: \rho_R$'}, inplace=True)
+        sns.set_context("paper", font_scale=3)
+        plt.rcParams['lines.linewidth'] = 4
+        fig, grid = plt.subplots()
+
+        grid = sns.relplot(data=dataframe, y=y, x=x, hue=hue, style=hue, err_style='bars',
+                           kind='line', col=col, col_wrap=col_wrap, facet_kws=facet_kws)
+        grid.set(yscale='log', yticks=[1, 10])
+        grid.set_titles("{col_name}", y=-0.25, fontsize=30)
+        grid.set_xlabels('')
+        plt.rcParams['font.size'] = 40
+        sns.move_legend(grid, loc='upper center', mode='expand',
+                        ncols=4, bbox_to_anchor=(0.1,1.0, 0.5, 0),
+                        borderaxespad=0., title=None, frameon=False)
+
+
+
+        grid.savefig(f'experiment_results/{file_name}.pdf')    
+
     elif kind in ['number_of_types', 'max_pattern', 'trace_length', 'number_of_patterns',
-                        'supp_alphabet', 'synt', 'domain_size', 'interleaving', 'max_type']:
+                'supp_alphabet', 'synt', 'domain_size', 'interleaving', 'max_type']:
 
         grid = sns.relplot(data=dataframe, y=y, x=x, hue=hue, style=hue, err_style='bars',
                            kind='line', col=col, col_wrap=col_wrap, facet_kws=facet_kws)
 
-        if kind == 'synt':
-            # grid.set(xticklabels=[])  # remove the tick labels
-            grid.set(xlabel='')  # remove the axis label
-            grid.set_titles("{col_name}")
-            sns.move_legend(grid, "upper left", bbox_to_anchor=(.85, .99))
 
         grid.set(yscale='log', yticks=[1, 100])
 
         grid.savefig(f'experiment_results/{file_name}.pdf')
 
-    else:
-        fig, grid = plt.subplots()
-        if kind == 'rl_compare':
-            fig, grid = plt.subplots(figsize=(20, 15))
-            # grid.set_xlabel(' ', fontdict={'fontsize': 40})
-            
-        
+    elif kind == 'rl_compare':
+        dataframe.rename(columns={'time':'time[s]'}, inplace=True)
+        dataframe.replace({'google': 'G2', 'finance': 'F2'}, inplace=True)
+        y='time[s]'
+        fig, grid = plt.subplots(figsize=(8,7)) # figsize=(20, 15)
+        # grid.set_xlabel(' ', fontdict={'fontsize': 40})
         grid.set(yscale='log')
 
         iteration = len(dataframe.iteration.unique())
-        sns.barplot(data=dataframe, y=y, x=x, hue=hue, ax=grid)
+        sns.barplot(data=dataframe, y=y, x=x, hue=hue, ax=grid, width=.8, order=['F2', 'G2'])
         disc_list = [disc for disc in dataframe['algorithm'].unique() for _ in range(iteration)]
         for disc,patch in zip(disc_list,grid.patches):
-            patch.set(hatch=hatches[disc])
-        
-        
-        if kind == 'rl_compare':
-            grid.legend([], [], frameon=False)
-            grid.set_ylabel('time' ,fontsize = 40)
-            grid.tick_params(axis='x', labelsize=40)
-            grid.set(xlabel=None)
-            fig.legend(bbox_to_anchor=(0.1, .85, .8, .07),loc='upper left',
-                                 mode='expand', ncols=2, borderaxespad=0.)
-        else:
-            grid.legend()
-            sns.move_legend(grid, "upper left", bbox_to_anchor=(1.1, 1))
+            patch.set_hatch(hatches[disc])
+        handles, _ = grid.get_legend_handles_labels()
+        handles[0].set_hatch(hatches['D-U-C'])
+        handles[1].set_hatch(hatches['RL'])
+
+        grid.legend([], [], frameon=False)
+        grid.set_ylabel('time[s]' ,fontsize = 40)
+        grid.tick_params(axis='x', labelsize=40)
+        grid.set(xlabel=None)
+        grid.set_yticks([1, 1000])
+        grid.tick_params(axis='y', which='minor', direction='in', length=5, width=2)
+        fig.legend(handles=handles, bbox_to_anchor=(0.05, .95, .85, .07),loc='upper left',
+                               mode='expand', ncols=2, borderaxespad=0., frameon=False)
+        plt.tight_layout()
         plt.savefig(f'experiment_results/{file_name}.pdf')
 
     return dataframe

@@ -101,7 +101,7 @@ def types_sample(iterations: int):
             _write_sample(filename=file_name, sample=new_sample_list, dirname=dirname)
 
 def traces_sample(iterations: int):
-    dir_name = f'traces'
+    dir_name = f'streams'
     
     for j in range(2, iterations+1, 100):
         #Modify sample

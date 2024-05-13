@@ -33,8 +33,12 @@ def max_pattern_ratio(iterations:int, repetitions:int, overwrite: bool = False):
     # dir_path = f'../datasets/{file_name}.'
     results = []
     sample_path = f'../datasets/synt/{file_name}'
-
+    if not os.path.isdir(sample_path):
+        os.makedirs(sample_path)
     all_files = os.listdir(sample_path)
+    if not all_files:
+        os.system("python ../datasets/synt/synt_sample_generator.py")
+        all_files = os.listdir(sample_path)
     file_list = [file.split('.')[0] for file in all_files]
     for file in file_list:
         j = int(file.split('_')[-1])
@@ -51,7 +55,13 @@ def type_ratio(iterations:int, repetitions:int, overwrite:bool = False):
     file_path = f'experiment_results/{file_name}.csv'
     results = []
     sample_path = f'../datasets/synt/{file_name}'
+    if not os.path.isdir(sample_path):
+        os.makedirs(sample_path)
+        
     all_files = os.listdir(sample_path)
+    if not all_files:
+        os.system("python ../datasets/synt/synt_sample_generator.py")
+        all_files = os.listdir(sample_path)
     file_list = [file.split('.')[0] for file in all_files]
     for file in file_list:
         j = int(file.split('_')[-1])
@@ -70,7 +80,12 @@ def max_type(iterations:int, repetitions:int, overwrite:bool = False):
     file_path = f'experiment_results/{file_name}.csv'
     results = []
     sample_path = f'../datasets/synt/{file_name}'
+    if not os.path.isdir(sample_path):
+        os.makedirs(sample_path)
     all_files = os.listdir(sample_path)
+    if not all_files:
+        os.system("python ../datasets/synt/synt_sample_generator.py")
+        all_files = os.listdir(sample_path)
     file_list = [file.split('.')[0] for file in all_files]
     for file in file_list:
         j = int(file.split('_')[-1])
@@ -89,7 +104,12 @@ def min_trace_length(iterations:int, repetitions:int, overwrite:bool = False):
     file_path = f'experiment_results/{file_name}.csv'
     results = []
     sample_path = "../datasets/synt/trace_length"
+    if not os.path.isdir(sample_path):
+        os.makedirs(sample_path)
     all_files = os.listdir(sample_path)
+    if not all_files:
+        os.system("python ../datasets/synt/synt_sample_generator.py")
+        all_files = os.listdir(sample_path)
     file_list = [file.split('.')[0] for file in all_files]
     for file in file_list:
         j = int(file.split('_')[-1])
@@ -102,12 +122,17 @@ def min_trace_length(iterations:int, repetitions:int, overwrite:bool = False):
     
     return dataframe
 
-def traces(iterations:int, repetitions:int, overwrite:bool = False):
-    file_name = f'traces'
+def streams(iterations:int, repetitions:int, overwrite:bool = False):
+    file_name = f'streams'
     file_path = f'experiment_results/{file_name}.csv'
     results = []
     sample_path = f'../datasets/synt/{file_name}'
+    if not os.path.isdir(sample_path):
+        os.makedirs(sample_path)
     all_files = os.listdir(sample_path)
+    if not all_files:
+        os.system("python ../datasets/synt/synt_sample_generator.py")
+        all_files = os.listdir(sample_path)
     file_list = [file.split('.')[0] for file in all_files]
     for file in file_list:
         j = int(file.split('_')[-1])
@@ -126,7 +151,12 @@ def domain_size(iterations:int, repetitions:int, overwrite:bool = False):
     file_path = f'experiment_results/{file_name}.csv'
     results = []
     sample_path = f'../datasets/synt/{file_name}'
+    if not os.path.isdir(sample_path):
+        os.makedirs(sample_path)
     all_files = os.listdir(sample_path)
+    if not all_files:
+        os.system("python ../datasets/synt/synt_sample_generator.py")
+        all_files = os.listdir(sample_path)
     file_list = [file.split('.')[-2] for file in all_files]
     for file in file_list:
         j = int(file.split('_')[-1])
@@ -146,10 +176,6 @@ if __name__ == "__main__":
     iterations = 101
     file_name = f'types'
     file_path = f'experiment_results/{file_name}.csv'
-    result_path = 'experiment_results'
-    if not os.path.isdir(result_path):
-        os.mkdir(result_path)
-
     if os.path.isfile(file_path):
         df3 = pd.read_csv(file_path)
     else:
@@ -166,8 +192,10 @@ if __name__ == "__main__":
         df1 = pd.read_csv(file_path)
     else:
         df1 = min_trace_length(iterations=iterations, repetitions= 5, overwrite=False)
-        df1['mode'] = 'trace_length'
+    df1['mode'] = 'stream length'
+
     LOGGER.info("Finished 2/6")
+    
     iterations = 101
     file_name = f'domain_size'
     file_path = f'experiment_results/{file_name}.csv'
@@ -175,17 +203,17 @@ if __name__ == "__main__":
         df6 = pd.read_csv(file_path)
     else:
         df6 = domain_size(iterations=iterations, repetitions= 5, overwrite=False)
-        df6['mode'] = 'domain size'
+        df6['mode'] = 'attributes'
 
     LOGGER.info("Finished 3/6")
     iterations = 1000
-    file_name = f'traces'
+    file_name = f'streams'
     file_path = f'experiment_results/{file_name}.csv'
     if os.path.isfile(file_path):
         df4 = pd.read_csv(file_path)
     else:
-        df4 = traces(iterations=iterations, repetitions= 5, overwrite=False)
-        df4['mode'] = 'traces'
+        df4 = streams(iterations=iterations, repetitions= 5, overwrite=False)
+    df4['mode'] = 'streams'
 
     LOGGER.info("Finished 4/6")
     iterations = 10
@@ -206,12 +234,13 @@ if __name__ == "__main__":
         df2 = max_type(iterations=iterations, repetitions= 5, overwrite=False)
         df2['mode'] = 'type sum'
     LOGGER.info("Finished 6/6")
-    frames = [df1, df2, df3, df4, df5, df6]
-    result = pd.concat(frames)
 
+    frames = [df4, df6, df2, df1, df3, df5]
+    result = pd.concat(frames)
+    result.to_csv('experiment_results/synt_plots.csv')
     file_name = 'synt_plots'
-    generate_plots(dataframe=result, file_name=file_name, x='iterations', y='time',
-                    hue='algorithm', col = 'mode', col_wrap=3,kind='synt',
+    generate_plots(dataframe=result, file_name=file_name, x='iterations', y='time[s]',
+                    hue='algorithm', col = 'mode', col_wrap=3, kind='synt',
                     facet_kws={'sharex': False, 'sharey': False})
     LOGGER.info("Finished generating plot")
     # save plot of {experiment_name} to 'experiment_results/{experiment_name}.pdf'
