@@ -565,7 +565,7 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
     plt.rcParams["savefig.facecolor"] = 'white'
     plt.rcParams["axes.facecolor"] = 'white'
     plt.rcParams["figure.facecolor"]= "white"
-
+    
     if kind not in ['sota', 'cluster', 'sota_acc', 'exclude', 'rl_compare']:
         dataframe = dataframe.astype({'time':'float', 'iterations':'int'})
     elif kind in ['interleaving']:
@@ -578,7 +578,7 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
     plot_path = 'experiment_results'
     if not os.path.isdir(plot_path):
         os.mkdir(plot_path)
-    
+
     dataframe.replace({'uni': 'D-U-C', 'sep': 'D-U-S', 'ilm': 'ILM',
                        'ups': 'B-S-C', 'sps': 'B-S-S', 'rl':'RL'}, inplace=True)
     hatches = {'D-U-C':'',
@@ -595,7 +595,7 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
 #                   'ILM': 'o',
 #                   'RL': 'x',}
     if kind in {'synt_queries'}:
-
+        
         grid = sns.catplot(data=dataframe, y=y, x=x, hue=hue , kind='box', col=col, col_wrap=col_wrap)
         grid.set(yscale='log')
         grid.savefig(f'experiment_results/{file_name}.pdf')
@@ -660,7 +660,8 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
                     positions = [1.24,3.24,5.24]
                     for position in positions:
                         ax0.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
-                    
+                
+    
             else:
                 sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax1)
                 sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax2)
@@ -689,13 +690,14 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
                     hatch = 'B-S-S'
                 else:
                     hatch = 'ILM'
-                    
+
                 p.set(hatch=hatches[hatch])
                 if idx == 0:
                     
                     grid[idx].legend([], [], frameon=False)
                     grid[idx].set(xlabel='Google')
                     ax0.set(xlabel='Google')
+
                     ax0.patches[count].set(hatch=hatches[hatch])
 
                     ax0.patches[27].set(hatch=hatches['D-U-C'])
@@ -703,7 +705,6 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
                     ax0.patches[29].set(hatch=hatches['B-S-C'])
                     ax0.patches[30].set(hatch=hatches['B-S-S'])
                     ax0.patches[31].set(hatch=hatches['ILM'])
-
                     # plt.bar_label(splot.containers[0], label_type='center')
                     # fig.legend(loc='outside right')
                     ax0.legend([], [], frameon=False)
@@ -723,7 +724,7 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
                     ax2.legend([], [], frameon=False)
                     ax1.legend([], [], frameon=False)
 
-                    # if i[1] in data_subplot.loc[data_subplot.algorithm== 'ilm'].iterations.unique():
+                    # if i[1] in data_subplot.loc[data_subplot.algorithm== 'ILM'].iterations.unique():
                     ax3.legend([], [], frameon=False)
                     #     ax3.patches[count-ax3_count].set(hatch=hatches[i[0]])
                     # else:
@@ -735,7 +736,6 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
         fig2.subplots_adjust(wspace=0, hspace=0.1)
         # fig.savefig(f'experiments/results/plots/{file_name}.pdf')
         fig2.savefig(f'../experiments/experiment_results/{file_name}_broken_new.pdf')
-
 
     elif kind in ['sota_acc']:
         sns.set_context("paper", font_scale=3)
@@ -773,6 +773,7 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
         plt.subplots_adjust(wspace = 0.1)
 
         grid.savefig(f'experiment_results/{file_name}.pdf')
+
     elif kind in ['synt']:
         dataframe.rename(columns={'time':'time[s]'}, inplace=True)
         dataframe.replace({'streams': r'$E_1:|D|$', 'stream length': r'$E_2:|S|$', 'domain size': r'$E_3: |\mathcal{A}|$',
@@ -792,8 +793,7 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
                         borderaxespad=0., title=None, frameon=False)
 
 
-
-        grid.savefig(f'experiment_results/{file_name}.pdf')    
+        grid.savefig(f'experiment_results/{file_name}.pdf')
 
     elif kind in ['number_of_types', 'max_pattern', 'trace_length', 'number_of_patterns',
                 'supp_alphabet', 'synt', 'domain_size', 'interleaving', 'max_type']:
@@ -803,22 +803,28 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
 
 
         grid.set(yscale='log', yticks=[1, 100])
+        
 
         grid.savefig(f'experiment_results/{file_name}.pdf')
 
+    
     elif kind == 'rl_compare':
         dataframe.rename(columns={'time':'time[s]'}, inplace=True)
         dataframe.replace({'google': 'G2', 'finance': 'F2'}, inplace=True)
         y='time[s]'
         fig, grid = plt.subplots(figsize=(8,7)) # figsize=(20, 15)
         # grid.set_xlabel(' ', fontdict={'fontsize': 40})
+
+
         grid.set(yscale='log')
 
         iteration = len(dataframe.iteration.unique())
         sns.barplot(data=dataframe, y=y, x=x, hue=hue, ax=grid, width=.8, order=['F2', 'G2'])
         disc_list = [disc for disc in dataframe['algorithm'].unique() for _ in range(iteration)]
+        
         for disc,patch in zip(disc_list,grid.patches):
             patch.set_hatch(hatches[disc])
+        
         handles, _ = grid.get_legend_handles_labels()
         handles[0].set_hatch(hatches['D-U-C'])
         handles[1].set_hatch(hatches['RL'])

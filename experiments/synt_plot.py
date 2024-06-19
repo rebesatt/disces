@@ -176,6 +176,9 @@ if __name__ == "__main__":
     iterations = 101
     file_name = f'types'
     file_path = f'experiment_results/{file_name}.csv'
+    result_path = 'experiment_results'
+    if not os.path.isdir(result_path):
+        os.mkdir(result_path)
     if os.path.isfile(file_path):
         df3 = pd.read_csv(file_path)
     else:

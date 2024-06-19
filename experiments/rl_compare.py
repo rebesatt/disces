@@ -82,8 +82,10 @@ def rl_compare():
         sample = MultidimSample()
         if mod == 'finance':
             sample.set_sample(sample_list_finance)
+            dataset = 'F2b'
         else:
             sample.set_sample(sample_list_google)
+            dataset = 'G2b'
         alphabet = sample.get_sample_typeset()
         queryset = set()
         descritptive = 0
@@ -111,16 +113,16 @@ def rl_compare():
                         non_descritptive += 1
                     else:
                         not_matching += 1
-        rl_result.append([mod, len(desc_queryset),descritptive, non_descritptive, not_matching])
+        rl_result.append([dataset, len(desc_queryset),descritptive, non_descritptive, not_matching])
     tex_path = f'../experiments/experiment_results/{file_name}.tex'
-    columns = ["Dataset", "$D$(escriptive)", "Found", "$\\neg D$", "$\\neg$ Matching"]
-    df_tex = pd.DataFrame(rl_result, columns=columns)
+    columns = ["Dataset", "{Desc}(riptive)", "Found", "$\\neg$ {Desc}", "$\\neg$ Matching"]
+    df_tex = pd.DataFrame(rl_result, columns=columns).sort_values(by='Dataset')
     s = df_tex.style.set_table_styles([
     {'selector': 'toprule', 'props': ':hline;'},
     {'selector': 'midrule', 'props': ':hline;'},
     {'selector': 'bottomrule', 'props': ':hline;'},], overwrite=True).hide(axis='index')
     with open(tex_path, 'w', encoding='utf-8') as f:
-        f.write(s.to_latex(column_format='|c|c|c|c|c|'))
+        f.write(s.to_latex(column_format='c c c c c'))
     return df
 
 if __name__ == "__main__":

@@ -138,7 +138,7 @@ if __name__ == "__main__":
                 df_cluster.loc[idx, 'rel time change'] = float(df_cluster.loc[idx, 'time']) / baseline
     file_name = f'cluster'
     generate_plots(dataframe=df_cluster, file_name=file_name, x='iterations', y='rel time change',
-                    hue='algorithm', col='mode', kind='cluster', facet_kws={'sharex': False, 'sharey': True})
+                    hue='algorithm', col='mode', kind='cluster', facet_kws={'sharex': False, 'sharey': False})
 
     # Return to the origin
     os.chdir(CURRENT_WD)

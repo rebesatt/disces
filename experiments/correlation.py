@@ -192,27 +192,27 @@ if __name__ == "__main__":
 
     # df_corr = df_corr.loc[df_corr['iterations'] == 'F1']
     tex_path = '../experiments/experiment_results/char_corr.tex'
-    df_corr.rename(columns={'sum_pattern': '$V$','sum_types': '$Y$','domainsize': '$\\Delta$','number_types': '$T$'}, inplace=True)
-    slice_ = ['uni', 'sep', 'ups', 'sps', '$V$', '$Y$','$\\Delta$','$T$']
+    df_corr.rename(columns={'sum_pattern': '$\\rho_R$','sum_types': '$\\rho_S$','domainsize': '$\\mathcal{A}$','number_types': '$\\Gamma_D$'}, inplace=True)
+    slice_ = ['uni', 'sep', 'ups', 'sps', '$\\rho_R$', '$\\rho_S$','$\\mathcal{A}$','$\\Gamma_D$']
     df_corr_adapted = df_corr[slice_]
     df_corr_adapted.columns = pd.MultiIndex.from_tuples([
-    ("Algorithm runtime", "uni"),
-    ("Algorithm runtime", "sep"),
-    ("Algorithm runtime", "ups"),
-    ("Algorithm runtime", "ups"),
-    ("Database properties", '$V$'),
-    ("Database properties", '$Y$'),
-    ("Database properties", '$\\Delta$'),
-    ("Database properties", '$T$'),])
+    ("Algorithm runtime", "D-U-C"),
+    ("Algorithm runtime", "D-U-S"),
+    ("Algorithm runtime", "B-S-C"),
+    ("Algorithm runtime", "B-S-S"),
+    ("Database properties", '$\\rho_R$'),
+    ("Database properties", '$\\rho_S$'),
+    ("Database properties", '$|\\mathcal{A}|$'),
+    ("Database properties", '$|\\Gamma_D|$'),])
     # s = df_corr.style.background_gradient(subset=slice_).hide(axis='index')
     
     s = df_corr_adapted.style.set_table_styles([
-    {'selector': 'toprule', 'props': ':hline;'},
-    {'selector': 'midrule', 'props': ':hline;'},
-    {'selector': 'bottomrule', 'props': ':hline;'},], overwrite=True).format(precision=2).hide(axis='index')
+    {'selector': 'toprule', 'props': ':toprule;'},
+    {'selector': 'midrule', 'props': ':midrule;'},
+    {'selector': 'bottomrule', 'props': ':bottomrule;'},], overwrite=True).format(precision=2).hide(axis='index')
     
     with open(tex_path, 'w', encoding='utf-8') as f:
         f.write(s.to_latex(convert_css=True, 
-                           column_format="|r|r|r|r|r|r|r|r|", multicol_align='c|'))
+                           column_format="rrrrrrrr", multicol_align='c'))
     # Return to the origin
     os.chdir(CURRENT_WD)
