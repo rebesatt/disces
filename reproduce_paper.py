@@ -1,5 +1,6 @@
 """
 """
+import importlib
 import zipfile
 import shutil
 import os
@@ -14,10 +15,12 @@ from argparse import RawTextHelpFormatter
 SCRIPT_ABS_DIR = os.path.abspath(__file__).replace("reproduce_paper.py", "")
 
 PROJECT_NAME = "DISCES"
-VERSION = "0.4.1"
+VERSION = "0.7.0"
 ZIP_LOCATION = "https://github.com/rebesatt/disces/raw/main/datasets/DISCES.zip"
 FINANCE_ZIP_LOCATION = "https://github.com/rebesatt/disces/raw/main/datasets/finance/finance.zip"
 GOOGLE_ZIP_LOCATION = "https://github.com/rebesatt/disces/raw/main/datasets/google/google.zip"
+
+PYTHON_COMMAND = "python"
 
 def print_to_std_and_file(str_to_log):
     current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
@@ -30,7 +33,6 @@ def print_with_timestamp(str_to_stdout):
     print(current_timestamp + ": " + str_to_stdout)
 
 def verify_requirements():
-    # TODO: Check LaTeX-Version and packages
     try:
         if not (sys.version_info.major == 3 and sys.version_info.minor >= 10):
             print_to_std_and_file("Running this script requries Python >= 3.10. Current versions is " + str(sys.version_info.major) + "." + str(sys.version_info_minor))
@@ -38,8 +40,47 @@ def verify_requirements():
     except:
         print_to_std_and_file("Running this script requries Python >= 3.10. Please upgrade your Python and retry again.")
         sys.exit(1)
-    if not shutil.which("latex"):
-        print_to_std_and_file("Note: Reporducing this script requries LaTeX. Not LaTeX installation fount.")
+    any_package_missing = False
+    try:
+        import pandas
+    except:
+        print_to_std_and_file("Python package 'pandas' is not installed.")
+        any_package_missing = True
+    try:
+        import msgpack
+    except:
+        print_to_std_and_file("Python package 'msgpack' is not installed.")
+        any_package_missing = True
+    try:
+        import numpy
+    except:
+        print_to_std_and_file("Python package 'numpy' is not installed.")
+        any_package_missing = True
+    try:
+        import matplotlib
+    except:
+        print_to_std_and_file("Python package 'matplotlib' is not installed.")
+        any_package_missing = True
+    try:
+        import seaborn
+    except:
+        print_to_std_and_file("Python package 'seaborn' is not installed.")
+        any_package_missing = True
+    try:
+        import func_timeout
+    except:
+        print_to_std_and_file("Python package 'func_timeout' is not installed.")
+        any_package_missing = True
+
+    if any_package_missing:
+        print_to_std_and_file("This script requries all mentioned packages. Please install them manually.")
+        print_to_std_and_file("The missing packages can be installed in 'DISCES/' via 'python -m pip install -r requirements.txt'")
+        if not shutil.which("latex"):
+            print_to_std_and_file("In addtion reproducing this script requries LaTeX. No LaTeX installation found.")
+        sys.exit(1)
+    else:
+        if not shutil.which("latex"):
+            print_to_std_and_file("Note: Reporducing this script requries LaTeX. No LaTeX installation found.")
 
 def execute_shell_command(cmd, stdout_verification=None, b_stderr_verification=False):
     print_to_std_and_file("Executed command: " + cmd)
@@ -49,11 +90,17 @@ def execute_shell_command(cmd, stdout_verification=None, b_stderr_verification=F
     if len(stderr_str):
         if len(stdout_str):
             print_to_std_and_file("STDOUT:")
-            print_to_std_and_file(stdout_str.replace("\\r", '\r').replace("\\n", '\n'))
+            splitted_output = stdout_str.replace("\\r", '\r').replace("\\n", '\n').split('\n')
+            for line in splitted_output:
+                print_to_std_and_file(line)
         print_to_std_and_file("STDERR:")
-        print_to_std_and_file(stderr_str.replace("\\r", '\r').replace("\\n", '\n'))
+        splitted_output = stderr_str.replace("\\r", '\r').replace("\\n", '\n').split('\n')
+        for line in splitted_output:
+            print_to_std_and_file(line)
     else:
-        print_to_std_and_file(stdout_str.replace("\\r", '\r').replace("\\n", '\n'))
+        splitted_output = stdout_str.replace("\\r", '\r').replace("\\n", '\n').split('\n')
+        for line in splitted_output:
+            print_to_std_and_file(line)
 
     if stdout_verification is not None:
         if stdout_verification not in result.stdout.decode():
@@ -83,9 +130,6 @@ def download_repository():
     if os.path.isdir(SCRIPT_ABS_DIR + "datasets/") and os.path.isdir(SCRIPT_ABS_DIR + "docs/") and os.path.isdir(SCRIPT_ABS_DIR + "experiments/"):
         print_to_std_and_file("The reproduce_paper.py script is part of a '" + PROJECT_NAME + "' project. No files will be downloaded.")
         project_root = SCRIPT_ABS_DIR
-        #TODO:
-        print_to_std_and_file("Update python-scripts for algorithms and experiments locally.")
-        execute_shell_command('python src/file_updater.py')
         return project_root
 
     print_to_std_and_file("The reproduce_paper.py script is a standalone. Downloading '" + PROJECT_NAME + "'s source code.")
@@ -114,16 +158,10 @@ def download_repository():
         sys.exit(1)
 
     if os.path.isdir(project_root):
-        ### shutil.copytree(".temp_" + PROJECT_NAME + "/test", PROJECT_NAME, dirs_exist_ok=True)
-        #TODO: remove next and uncomment second if the zip is not called 'test' anymore
         shutil.copytree(".temp_" + PROJECT_NAME + "/" + PROJECT_NAME, PROJECT_NAME, dirs_exist_ok=True)
-        #shutil.copytree(".temp_" + PROJECT_NAME + "/" + PROJECT_NAME, PROJECT_NAME, dirs_exist_ok=True)
         print_to_std_and_file("Found existing local project " + project_root + ". Merge repository updates to it.")
     else:
-        ### shutil.move(".temp_" + PROJECT_NAME + "/test", PROJECT_NAME)
-        #TODO: remove next and uncomment second if the zip is not called 'test' anymore
         shutil.move(".temp_" + PROJECT_NAME + "/" + PROJECT_NAME, PROJECT_NAME)
-        #shutil.move(".temp_" + PROJECT_NAME + "/" + PROJECT_NAME, PROJECT_NAME)
         print_to_std_and_file("Downloaded the project to " + project_root)
     shutil.rmtree(".temp_" + PROJECT_NAME)
 
@@ -159,7 +197,12 @@ def download_and_extract_datasets(name, location):
 def create_synthetic_data():
     cur_wd = os.getcwd()
     os.chdir("datasets/synt/")
-    execute_shell_command_with_live_output("python synt_sample_generator.py")
+    try:
+        execute_shell_command_with_live_output(PYTHON_COMMAND + " synt_sample_generator.py")
+    except Exception as e:
+        if os.path.isfile("./synt_sample_generator.py"):
+            print_to_std_and_file("Since '" + PYTHON_COMMAND + "' is not known, it is recommanded to specify the python version, e.g. 'python3 reproduce_paper.py --pv python3'.")
+        sys.exit(1)
     os.chdir(cur_wd)
 
 def create_verification_file(local_result_dir, file_to_verify_execution):
@@ -197,23 +240,66 @@ def compile_main_pdf():
                    "Figure 2": "rl_compare.pdf",
                    "Figure 3": "synt_plots.pdf",
                    "Figure 4": "cluster.pdf",
-                   "Figure 5": "exclude.pdf",
-                   "Figure 6": "sota_acc.pdf"}
+                   "Figure 5": "exclude.pdf"}
+    tex_list = {"Table 1": "sota_acc.tex",
+                "Table 2": "char_corr.tex",
+                "Table 3": "rl_compare.tex"}
     if not os.path.isdir(project_root + "docs/latex_src/img"):
         print_to_std_and_file("'" + project_root + "docs/latex_src/img' was not available. All original images are missing.")
         os.makedirs(project_root + "docs/latex_src/img")
         print_to_std_and_file("'" + project_root + "docs/latex_src/img' created.")
+    for file_list in [figure_list, tex_list]:
+        if file_list == figure_list:
+            img_path = "img/"
+            file_type = "plot"
+        else:
+            img_path = ""
+            file_type = "table"
+        for file_name, file in file_list.items():
+            new_file_exists = os.path.isfile(local_result_dir + "/" + file)
+            cur_file_exists = os.path.isfile(project_root + "docs/latex_src/" + img_path + file)
+            old_file_exists = os.path.isfile(project_root + "docs/latex_src/originals/" + file)
+            if new_file_exists:
+                if cur_file_exists and not old_file_exists:
+                    if not os.path.isdir(project_root + "docs/latex_src/originals"):
+                        os.makedirs(project_root + "docs/latex_src/originals")
+                        print_to_std_and_file("'" + project_root + "docs/latex_src/originals' created.")
+                    print_to_std_and_file("Replacing " + file_name + " (" + file + ") with the reproduced one. Original file can be found in '" + project_root + "docs/latex_src/originals/'")
+                    shutil.copyfile(project_root + "docs/latex_src/" + img_path + file, project_root + "docs/latex_src/originals/" + file)
+                elif old_file_exists:
+                    print_to_std_and_file("Copying " + file_name + " (" + file + ") to '" + project_root + "docs/latex_src/" + img_path + "'")
+                    print_to_std_and_file("Note: original " + file_name + " (" + file + ") is in '" + project_root + "docs/latex_src/originals/' available.")
+                else:
+                    print_to_std_and_file("Copying " + file_name + " (" + file + ") to '" + project_root + "docs/latex_src/" + img_path + "'")
+                    print_to_std_and_file("Note: original " + file_name + " (" + file + ") is not available.")
+                shutil.copyfile(local_result_dir + "/" + file, project_root + "docs/latex_src/" + img_path + file)
+            else:
+                if cur_file_exists and not old_file_exists:
+                    print_to_std_and_file("Note: " + file_name + " (" + file + ") wasn't found in '" + local_result_dir + "'. Using the original " + file_type + " from the paper.")
+                if not cur_file_exists:
+                    if old_file_exists:
+                        print_to_std_and_file("Moving " + file_name + " (" + file + ") to '" + project_root + "docs/latex_src/" + img_path + "'")
+                        print_to_std_and_file("Note: " + file_name + " (" + file + ") wasn't found in '" + local_result_dir + "'. Using the original " + file_type + " from the paper.")
+                        shutil.move(project_root + "docs/latex_src/originals/" + file, project_root + "docs/latex_src/" + img_path +file)
+                    else:
+                        print_to_std_and_file("Note: " + file_name + " (" + file + ") wasn't found in '" + project_root + "docs/latex_src/originals/'." +
+                        "The " + file_type + " will not be included in the paper.")
+
+
     for figure_name, figure_file in figure_list.items():
         new_file_exists = os.path.isfile(local_result_dir + "/" + figure_file)
         cur_file_exists = os.path.isfile(project_root + "docs/latex_src/img/" + figure_file)
-        old_file_exists = os.path.isfile(project_root + "docs/latex_src/original_img/" + figure_file)
+        old_file_exists = os.path.isfile(project_root + "docs/latex_src/originals/" + figure_file)
         if new_file_exists:
             if cur_file_exists and not old_file_exists:
-                if not os.path.isdir(project_root + "docs/latex_src/img"):
-                    os.makedirs(project_root + "docs/latex_src/original_img")
-                    print_to_std_and_file("'" + project_root + "docs/latex_src/original_img' created.")
+                if not os.path.isdir(project_root + "docs/latex_src/originals"):
+                    os.makedirs(project_root + "docs/latex_src/originals")
+                    print_to_std_and_file("'" + project_root + "docs/latex_src/originals' created.")
+                print_to_std_and_file("Replacing " + figure_name + " (" + figure_file + ") with the reproduced one. Original file can be found in '" + project_root + "docs/latex_src/originals/")
                 shutil.copyfile(project_root + "docs/latex_src/img/" + figure_file, project_root + "docs/latex_src/original_img/" + figure_file)
-                print_to_std_and_file("Replacing " + figure_name + " (" + figure_file + ") with the reproduced one. Original file can be found in '" + project_root + "docs/latex_src/original_img/")
+            elif old_file_exists:
+                print_to_std_and_file("Copying " + figure_name + " (" + figure_file + ") to '" + project_root + "docs/latex_src/img/")
+                print_to_std_and_file("Note: original " + figure_name + " (" + figure_file + ") is in " + project_root + "docs/latex_src/originals/" + " available.")
             else:
                 print_to_std_and_file("Copying " + figure_name + " (" + figure_file + ") to '" + project_root + "docs/latex_src/img/")
                 print_to_std_and_file("Note: original " + figure_name + " (" + figure_file + ") is not available.")
@@ -223,11 +309,11 @@ def compile_main_pdf():
                 print_to_std_and_file("Note: " + figure_name + " (" + figure_file + ") wasn't found in " + local_result_dir + ". Using the original figure from the paper.")
             if not cur_file_exists:
                 if old_file_exists:
-                    print_to_std_and_file("Copying " + figure_name + " (" + figure_file + ") to '" + project_root + "docs/latex_src/img/")
+                    print_to_std_and_file("Moving " + figure_name + " (" + figure_file + ") to '" + project_root + "docs/latex_src/img/")
                     print_to_std_and_file("Note: " + figure_name + " (" + figure_file + ") wasn't found in " + local_result_dir + ". Using the original figure from the paper.")
-                    shutil.copyfile(project_root + "docs/latex_src/original_img/" + figure_file, project_root + "docs/latex_src/img/" + figure_file)
+                    shutil.move(project_root + "docs/latex_src/originals/" + figure_file, project_root + "docs/latex_src/img/" + figure_file)
                 else:
-                    print_to_std_and_file("Note: " + figure_name + " (" + figure_file + ") wasn't found in '" + project_root + "docs/latex_src/original_img/'." +
+                    print_to_std_and_file("Note: " + figure_name + " (" + figure_file + ") wasn't found in '" + project_root + "docs/latex_src/originals/'." +
                     " Plot will not be included in the paper.")
 
     os.chdir(project_root + "docs/latex_src/")
@@ -235,7 +321,11 @@ def compile_main_pdf():
     execute_shell_command('pdflatex --interaction=nonstopmode main.tex')
     execute_shell_command('bibtex main.aux')
     execute_shell_command('pdflatex --interaction=nonstopmode main.tex')
-    execute_shell_command('pdflatex --interaction=nonstopmode main.tex', stdout_verification="main.pdf")
+    try:
+        execute_shell_command('pdflatex --interaction=nonstopmode main.tex', stdout_verification="main.pdf")
+    except Exception:
+        print_to_std_and_file("The paper, containing the new figures based on these experiments, could not be generated. Check the log for more details.")
+        sys.exit(1)
 
     shutil.copyfile("main.pdf", reproduced_main_pfd_file)
     print_to_std_and_file("The reproduced paper, containing the new figures based on these experiments, is in " + reproduced_main_pfd_file)
@@ -252,10 +342,12 @@ def clean_working_directory():
     shutil.rmtree("datasets/synt/trace_length/", ignore_errors=True)
     shutil.rmtree("datasets/synt/traces/", ignore_errors=True)
     shutil.rmtree("datasets/synt/types/", ignore_errors=True)
-    #TODO:
-    #docs latexmk -C
-    #execute_shell_command('pdflatex --interaction=nonstopmode main.tex', stdout_verification="main.pdf")
     shutil.rmtree("experiments/experiment_results/", ignore_errors=True)
+    os.chdir(project_root + "docs/latex_src/")
+    try:
+        execute_shell_command('pdflatex -C')
+    except:
+        pass
 
 if __name__ == "__main__":
     # Setup
@@ -272,6 +364,10 @@ if __name__ == "__main__":
     parser.add_argument("--noexp", dest="b_run_no_experiment",
             help="",
             action="store_true")
+    parser.add_argument("--pv", dest="s_python_version",
+            nargs='?',
+            help="",
+            type=str)
     parser.add_argument("--C", dest="b_clean_working_directory",
             help="",
             action="store_true")
@@ -282,14 +378,17 @@ if __name__ == "__main__":
         clean_working_directory()
         sys.exit()
 
+    if args.s_python_version:
+        PYTHON_COMMAND = args.s_python_version
+
     log_file = os.path.abspath(__file__).replace("reproduce_paper.py", "reproduce_paper.log")
     reproduced_main_pfd_file = os.path.abspath(__file__).replace("reproduce_paper.py", "main.pdf")
     print_to_std_and_file("======================== Reproduce '" + PROJECT_NAME + "'s Experiments ========================")
     print_with_timestamp("The script log is at " + str(log_file))
 
-    verify_requirements()
-
     project_root = download_repository()
+
+    verify_requirements()
     os.chdir(project_root)
 
     create_synthetic_data()
@@ -320,7 +419,7 @@ if __name__ == "__main__":
             args = ["", "", "", "", run_ilm, "", ""]
             assert len(functions) == len(args)
             try:
-                run_experiments(local_result_dir, "python", functions.keys(), "experiments/", ".verification_file", args=args, estimated_runtimes=list(functions.values()))
+                run_experiments(local_result_dir, PYTHON_COMMAND, functions.keys(), "experiments/", ".verification_file", args=args, estimated_runtimes=list(functions.values()))
             except AssertionError:
                 print_to_std_and_file("Experiments did not finish due to an error! Check the log for more details.")
 
