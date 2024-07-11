@@ -603,7 +603,7 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
         dataframe.rename(columns={'time':'time[s]'}, inplace=True)
         y='time[s]'
         plt.rcParams['font.size'] = 20
-        fig, grid = plt.subplots(1,2, layout='constrained', figsize=(15, 3))
+        fig, grid = plt.subplots(1,2, layout='constrained', figsize=(25, 6),sharey=True)
         fig2 = plt.figure(figsize=(25, 6))
         gs = GridSpec(nrows=2, ncols=2)
         # First axes
@@ -648,50 +648,51 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
         for idx, mod in enumerate(['google', 'finance']):
             data_subplot = adatped_dataframe.loc[adatped_dataframe['mode'] == mod]
             sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=grid[idx])
-            if idx == 0:
-                sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax0)
-                # ax0.bar_label(ax0.containers[4], fmt='timeout', label_type='edge')
-                if 'ILM' in adatped_dataframe['algorithm'].unique():
-                    # for container in ax0.containers[4]:
-                    #     print(container._x0)
-                    #     if isnan(container._height):
-                    #         position = container._x0 #+ container._width/2
-                    #         ax0.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
-                    positions = [1.24,3.24,5.24]
-                    for position in positions:
-                        ax0.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
-                
-    
-            else:
-                sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax1)
-                sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax2)
-                # ax2.bar_label(ax2.containers[4], fmt='timeout', label_type='edge')
-                if 'ILM' in adatped_dataframe['algorithm'].unique():
-                    # for container in ax2.containers[4]:
-                    #     print(container._x0)
-                    #     if isnan(container._height):
-                    #         position = container._x0 #+ container._width/4
-                    #         ax2.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
-                    positions = [1.24,3.24,5.24]
-                    for position in positions:
-                        ax2.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
-                data_subplot = adatped_dataframe.loc[adatped_dataframe['mode'] == 'google']
-                sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax3)
-            ax3_count = 0
-            for count, (i, p) in enumerate(zip(cart_product, grid[idx].patches)):
-                
-                if count <=5:
-                    hatch = 'D-U-C'
-                elif count <=11:
-                    hatch = 'D-U-S'
-                elif count <=17:
-                    hatch = 'B-S-C'
-                elif count <=23:
-                    hatch = 'B-S-S'
+            if 'ILM' in dataframe['algorithm'].unique():
+                if idx == 0:
+                    sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax0)
+                    # ax0.bar_label(ax0.containers[4], fmt='timeout', label_type='edge')
+                    if 'ILM' in adatped_dataframe['algorithm'].unique():
+                        # for container in ax0.containers[4]:
+                        #     print(container._x0)
+                        #     if isnan(container._height):
+                        #         position = container._x0 #+ container._width/2
+                        #         ax0.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
+                        positions = [1.24,3.24,5.24]
+                        for position in positions:
+                            ax0.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
+                    
+        
                 else:
-                    hatch = 'ILM'
+                    sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax1)
+                    sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax2)
+                    # ax2.bar_label(ax2.containers[4], fmt='timeout', label_type='edge')
+                    if 'ILM' in adatped_dataframe['algorithm'].unique():
+                        # for container in ax2.containers[4]:
+                        #     print(container._x0)
+                        #     if isnan(container._height):
+                        #         position = container._x0 #+ container._width/4
+                        #         ax2.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
+                        positions = [1.24,3.24,5.24]
+                        for position in positions:
+                            ax2.text(position, 0.0001, 'timeout',rotation=90, fontsize=35)
+                    data_subplot = adatped_dataframe.loc[adatped_dataframe['mode'] == 'google']
+                    sns.barplot(data=data_subplot, y=y, x=x, hue=hue, ax=ax3)
+                ax3_count = 0
+                for count, (i, p) in enumerate(zip(cart_product, grid[idx].patches)):
+                    
+                    if count <=5:
+                        hatch = 'D-U-C'
+                    elif count <=11:
+                        hatch = 'D-U-S'
+                    elif count <=17:
+                        hatch = 'B-S-C'
+                    elif count <=23:
+                        hatch = 'B-S-S'
+                    else:
+                        hatch = 'ILM'
 
-                p.set(hatch=hatches[hatch])
+                    p.set(hatch=hatches[hatch])
                 if idx == 0:
                     
                     grid[idx].legend([], [], frameon=False)
@@ -735,7 +736,11 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
         fig2.supylabel('time[s]', fontsize=35)
         fig2.subplots_adjust(wspace=0, hspace=0.1)
         # fig.savefig(f'experiments/results/plots/{file_name}.pdf')
-        fig2.savefig(f'../experiments/experiment_results/{file_name}_broken_new.pdf')
+        if 'ILM' in dataframe['algorithm'].unique():
+            fig2.savefig(f'../experiments/experiment_results/{file_name}_broken_new.pdf')
+        else:
+            grid[0].legend([], [], frameon=False)
+            fig.savefig(f'../experiments/experiment_results/{file_name}_broken_new.pdf')
 
     elif kind in ['sota_acc']:
         sns.set_context("paper", font_scale=3)

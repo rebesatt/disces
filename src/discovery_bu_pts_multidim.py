@@ -5,7 +5,7 @@ import time
 from math import ceil
 from copy import deepcopy
 import numpy as np
-from query_multidim import MultidimQuery
+from datasets.DISCES.DISCES.src.query_multidim import MultidimQuery
 from error import EmptySampleError, InvalidQuerySupportError
 from discovery import combine_all, merge_event_arrays
 from sample_multidim import MultidimSample

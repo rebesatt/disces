@@ -11,7 +11,7 @@ import numpy as np
 
 from sample import Sample
 from discovery_bu_pts_multidim import discovery_bu_pts_multidim
-from query_multidim import MultidimQuery
+from datasets.DISCES.DISCES.src.query_multidim import MultidimQuery
 from query import Query
 
 

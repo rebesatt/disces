@@ -5,6 +5,7 @@ import pandas as pd
 import logging
 import argparse
 from argparse import RawTextHelpFormatter
+from statistics import mean
 
 #Logger Configuration:
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -161,6 +162,7 @@ if __name__ == "__main__":
 
         descriptive_queryset1 = set(dataframe.loc[(dataframe['iterations'] == abstraction)& (dataframe['algorithm'] == 'uni')].queryset.values[0].replace("{", "").replace("}","").replace("'","").split(','))
         descriptive_queryset = set(querystring.strip() for querystring in descriptive_queryset1)
+        runtimes_disces = []
         for discovery in ['uni', 'sep', 'ups', 'sps', 'ilm_lossy']:
             current_df = dataframe.loc[(dataframe['iterations'] == abstraction) & (dataframe['algorithm'] == discovery)]
             if discovery == 'ilm_lossy':
@@ -171,25 +173,47 @@ if __name__ == "__main__":
                 false_negatives = len(descriptive_queryset - ilm_queryset)
                 false_positives = len(ilm_queryset - descriptive_queryset)
                 f_score = 2* true_positives / (2*true_positives + false_negatives + false_positives)
+                avg_runtime_ilm = mean(current_df.time.values)
             else:
                 f_score = 1
+                runtimes_disces.extend(current_df.time.values)
             for current_time in current_df.time.values:
                 results.append([mod, abstraction, discovery, current_time, f_score])
-        tex_result.append([abstraction, len(descriptive_queryset), true_positives, false_positives])
+        
+        avg_runtime_disces = mean(runtimes_disces)
+        rel_time_change = str(round(avg_runtime_ilm / avg_runtime_disces, 2))
+        
+        tex_result.append([abstraction, len(descriptive_queryset), true_positives, false_positives, rel_time_change])
+
 
     columns = ['mode', 'iterations', 'algorithm', 'time', 'f-score']
     acc_dataframe = pd.DataFrame(results, columns=columns)
     acc_dataframe.to_csv(acc_file_path)
 
     tex_path = f'../experiments/experiment_results/{file_name}.tex'
-    columns = ["Abstraction", "$D$(escriptive)", "Found", "$\\neg D$"]
+    columns = ["Abstraction", "$D$(escriptive)", "Found", "$\\neg D$", "Rel Time Change"]
     df_tex = pd.DataFrame(tex_result, columns=columns)
-    s = df_tex.style.set_table_styles([
+    df_tex[columns[1:]] = df_tex[columns[1:]].apply(pd.to_numeric)
+
+    df_finance = df_tex.loc[df_tex['Abstraction'].str.contains('F')]
+    df_google = df_tex.loc[df_tex['Abstraction'].str.contains('G')]
+
+    summarized_results = []
+    summarized_columns = ["Datasets", "Avg ${}^{\\text{Time Lossy ILM}}/_{\\text{Time \\sys{}}}$", 
+                          "{Desc}(riptive)", "Found", "$\\neg$ {Desc}"]
+    finance_list = ['F1b-F3b', df_finance['Rel Time Change'].mean(),  
+                    df_finance['$D$(escriptive)'].sum(),  df_finance['Found'].sum(), df_finance['$\\neg D$'].sum()]
+    google_list = ['G1b-G3b', df_google['Rel Time Change'].mean(),
+                    df_google['$D$(escriptive)'].sum(), df_google['Found'].sum(), df_google['$\\neg D$'].sum()]
+    summarized_results.append(finance_list)
+    summarized_results.append(google_list)
+    df_tex_summarized = pd.DataFrame(summarized_results, columns=summarized_columns)
+    s = df_tex_summarized.style.format(precision=2).set_table_styles([
     {'selector': 'toprule', 'props': ':hline;'},
     {'selector': 'midrule', 'props': ':hline;'},
     {'selector': 'bottomrule', 'props': ':hline;'},], overwrite=True).hide(axis='index')
     with open(tex_path, 'w', encoding='utf-8') as f:
-        f.write(s.to_latex(column_format='|c|c|c|c|'))
+        f.write(s.to_latex(column_format='c c c c c'))
     f.close()
     
 
