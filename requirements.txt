@@ -4,3 +4,4 @@ numpy
 matplotlib
 seaborn
 func_timeout
+jinja2
