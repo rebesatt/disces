@@ -342,9 +342,7 @@ def matching_smarter(querystring:str, sample:Sample, dict_iter:dict, patternset:
             LOGGER.info(parentstring)
             LOGGER.info(dict_iter)
             raise ValueError("Yet grand parent is needed!")
-            #parent_match, dict_iter = matching_smarter(parentstring, sample, dict_iter, patternset, supp, parent_dict)
-            #dict_iter[parentstring] = parent_match
-            #parent_traces= list(parent_match.keys())
+            
         trace_list= parent_traces
         num_trace_match = len(trace_list)
         return_match_result = True

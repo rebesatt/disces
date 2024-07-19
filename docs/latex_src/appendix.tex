@@ -1,0 +1,318 @@
+\appendix
+\section{Appendix}
+\label{app}
+In this appendix, we formalize the algorithms that could not be included in
+the main part of the paper, due to space restrictions.
+\subsection{Merge Attribute Queries}
+Our approach to merge queries found per attribute is defined as
+\textsc{MergeAttributeQueries} in \autoref{alg-bu-df:mergedomainqueries}.
+It takes as input a dictionary of matching queries for each attribute
+$Q_{\mathcal{A}}: \mathcal{A} \rightarrow 2^{\mathcal{Q}}$, a parent
+dictionary $P$, an event schema $\mathcal{A}$, a stream database $D$, and a
+sequence of query variables $\mathcal{X}^<$; and returns a set of merged
+queries.
+In essence, the algorithm is based on an exhaustive combination of all
+combinations of queries sourced from distinct attributes. Each resulting
+combination then is handled in several steps:
+\begin{itemize}
+\item Instance Generation: Initially, for every query found for an
+attribute, we systematically
+generate all
+feasible instances of the query within a single stream of the database.
+\item Merge and Translation: Subsequently, we consolidate the instances of
+the queries per attribute, and translate them into a unified query.
+\item Query Matching: Following the merge, the obtained query is matched
+against the stream database. If a match is identified, the merged query is
+integrated into the result set.
+\end{itemize}
+\begin{algorithm}[t]
+    \footnotesize
+    \caption{\textsc{MergeAttributeQueries}}
+    \label{alg-bu-df:mergedomainqueries}
+    \KwIn{\, \ Dictionary of matching queries for each attribute
+    	$Q_{\mathcal{A}}$,\\
+    	\hspace{3em} \,  parent
+    	dictionary $P$, event schema $\mathcal{A}$, stream database $D$,\\
+    	\hspace{3em} \,  sequence of query variables $\mathcal{X}^<$.}
+    \KwOut{Set of descriptive queries $Q_d$.}
+    \BlankLine
+    $Q_{m} \leftarrow \emptyset$\;
+    $\Gamma_D \gets \{a \in \Gamma \mid \forall \ S \in D: \exists \
+	j\in\{1,...,|S|\}, i\in\{1,...,n\}: S[j].A_i = a\}$\;
+	\tcc{\scriptsize{All combinations of queries from different
+	attributes}}
+    $L\leftarrow \bigtimes_{A\in\mathcal{A}}Q_{\mathcal{A}}(A)$\;
+     \tcc{\scriptsize{Stream matches dictionary}}
+    $T\leftarrow\emptyset$\;
+    \ForEach{$(q_1,\ldots,q_n)\in L$}
+    {
+    		$I \gets \emptyset$\;
+    		\lForEach{$q\in \{q_1,\ldots,q_n\}$}{$I(q) \gets \emptyset$}
+	        \ForEach{$q \in (q_1,\ldots,q_n)$}
+	        {
+		\tcc{\scriptsize{Instance positions of query $q$ in $D$}}
+		            $I(q) \leftarrow \textsc{GetInstances}(q,D)$\;
+		  \If{$\forall q'\in \dom(P): P(q')\neq q $}{
+                ${P \leftarrow}$
+		\textsc{ChildQueries}($\mathit{q,\mathcal{A},\Gamma_D,P,\mathcal{X}^<,\True}$)\;
+          }
+          }
+	        \tcc{\scriptsize{All
+		combinations of instance positions of queries from different
+		attributes}}
+	        $B \leftarrow \bigtimes_{q_A\in\{q_1,\ldots,q_n\} } I(q_A)$\;
+	        \ForEach{$(q'_1,\ldots,q'_n)\in B$}
+	        {
+	        	\tcc{\scriptsize{Translate instance tuple to query}}
+		            $q_{m} \leftarrow
+		            \textsc{Instance2Query}((q'_1,\ldots,q'_n),(q_1,\ldots,q_n))$\;
+                    ${P \leftarrow}$
+		\textsc{ChildQueries}($\mathit{q_m,\mathcal{A},\Gamma_D,P,\mathcal{X}^<,\True}$)\;
+		            $q_p \leftarrow P(q_m)$\;
+		            $M,T\leftarrow \textsc{Match}(q_m,\mathcal{A},
+		            D,q_p,T)$\;
+			    \tcc{\scriptsize{Add merged query to result set}}
+		            \lIf{$M=\True$}
+		            {
+                   $Q_{m} \leftarrow Q_{m} \cup \{q_m\}$
+			            }
+		        }
+	    }
+    \Return $Q_m$\;
+\end{algorithm}
+\begin{algorithm}[t]
+	\footnotesize
+	\caption{\textsc{DescriptiveQueries}}
+	\label{descriptivequeries}
+	\KwIn{\, \ Set of queries $Q$, supported alphabet
+		$\Gamma_D$, event schema $\mathcal{A}$,\\
+		\hspace{3em} \,  sequence of query variables $\mathcal{X}^<$ over
+		the set of query variables $\mathcal{X}$.}
+	\KwOut{Set of descriptive queries $Q_d$.}
+	\BlankLine
+	$Q_n\leftarrow \emptyset$\;
+	\tcc{\scriptsize For each query $q$ in the query set $Q$, create queries
+		which are less strict and therefore not descriptive}
+	\ForEach{$q \in Q$}{
+		$R \gets \emptyset$\;
+		\lForEach{$s\in \Gamma_D\cup\mathcal{X}$}
+		{$R(s)\gets \emptyset$}
+		\ForEach{$i\in\{1,\dots,|q|\}$}{
+			\label{alg10_1_start}
+			\ForEach{$A\in\mathcal{A}$}{
+				\If{$q[i].A \in \Gamma_D\cup\mathcal{X}$}
+				{$q_n \gets q$\;
+					$q_n[i].A \gets \_$\;
+					$Q_n \gets Q_n\cup \textsc{Normalform}(q_n)$\;
+					$R(q[i].A)\gets R(q[i].A)\cup \{i\} $\;
+				}
+			}
+			\label{alg10_1_end}
+		}
+		\ForEach{$s\in\dom(R)$}{
+			\If{$s\in\mathcal{X} \land |R(s)|\geq4$}{
+				\label{alg10_2_start}
+				\tcc{\scriptsize Find all combinations of partial
+				replacements
+					of variable $s$ in query $q$}
+				$G\gets \textsc{GenerateReplacements}(q,s)$\;
+				$Q_n \gets Q_n\cup G$\;
+			}
+			\label{alg10_2_end}
+			\If{$s\in\Gamma_D \land |R(s)|\geq2$}
+			{
+				\label{alg10_3_start}
+				\tcc{\scriptsize Find all combinations of partial and
+				complete
+					replacement of attribute type $s$ in query $q$}
+				$G\gets \textsc{GenerateReplacements}(q,s)$\;
+				$Q_n \gets Q_n\cup G$\;
+			}
+			\label{alg10_3_end}
+		}
+	}
+	$Q_d\leftarrow Q\backslash Q_n$\label{alg10_sub}\;
+	\Return $Q_d$\;
+\end{algorithm}
+\subsection{Descriptive Queries}
+Our approach to select only the descriptive queries in a set of queries is
+given as \textsc{DescriptiveQueries} in \autoref{descriptivequeries}. Given
+a set of queries $Q$, a supported alphabet
+$\Gamma_D$, an event schema $\mathcal{A}$, and a sequence of query variables
+$\mathcal{X}^<$ with $\mathcal{X}$ as the underlying set of query variables,
+it proceeds as follows. We iterate over each
+query $q$ within the given set and, for each query, generate queries that
+are less specific than~$q$.
+We generate less specific queries in three different ways:
+\begin{itemize}
+\item Replace each symbol (variable or attribute value) within the query by
+the placeholder (\autoref{alg10_1_start}-\ref{alg10_1_end}). For every
+replacement, a new non-descriptive query is added
+to the set of non-descriptive queries $Q_n$.
+\item Partially replace variables that appear at least four times within a
+query by a new variable that is not used in query $q$
+(\autoref{alg10_2_start}-\ref{alg10_2_end}).
+\item Partially and completely replace attribute types that appear at least
+twice within the given query  (\autoref{alg10_3_start}-\ref{alg10_3_end}).
+\end{itemize}
+At the end, we calculate the set of descriptive queries $Q_d$ by subtracting
+all queries in $Q_n$ from the given set of queries $Q$ (\autoref{alg10_sub}).
+The above approach relies on function \textsc{Normalform}, which checks, if
+a variable occurs
+at least twice, and otherwise replaces it with the placeholder $\_$. Second,
+it restores the order of the variables, such that the first occurrences of
+the variables appear in the same order in the query $q$ as they do in
+$\mathcal{X}^<$.
+\examplebox{Example - Merging Attribute Queries}{
+	\label{ex:merge}
+	Let us consider stream $S_2$ from Example~1, the following queries per
+	attribute, and their matching instances within the stream:
+	\begin{center}
+		\smallskip
+		{\footnotesize
+			\begin{tabular}{lll}
+				\toprule
+				Attribute & Query &  Positions \\
+				\midrule
+				Job Id & $\varepsilon, q_1=\langle (2,\_,\_) \rangle$   &
+				$(e_{21})$, $(e_{23})$  \\
+				Status   & $\varepsilon, q_2=\langle (\_,\text{schedule},\_)
+				(\_,\text{schedule},\_) \rangle$ & $(e_{21}, e_{22})$   \\
+				Priority   & $\varepsilon, q_3=\langle (\_,\_,\text{low})
+				\rangle$ & $(e_{21})$, $(e_{23})$   \\
+				\bottomrule
+		\end{tabular}}
+	\end{center}
+	The combination of queries found for different attributes leads to the
+	following set:
+	$$\{(q_1,q_2,q_3), (q_1,q_2,\varepsilon), (q_1,\varepsilon,q_3),
+	(\varepsilon,q_2,q_3),$$ $$(q_1,\varepsilon,\varepsilon),
+	(\varepsilon,\varepsilon,q_3),
+	(\varepsilon,q_2,\varepsilon),(\varepsilon,\varepsilon,\varepsilon)\}. $$
+	The connection of the different position for the query tuple
+	$(q_1,q_2,q_3)$ leads to the following merged queries:
+	\begin{align*}
+		&\langle (2,\text{schedule},\text{low}),(\_,\text{schedule},\_)
+		\rangle \\
+		&\langle
+		(\_,\text{schedule},\_),(\_,\text{schedule},\_),(2,\_,\text{low})
+		\rangle \\
+		&\langle
+		(2,\text{schedule},\_),(\_,\text{schedule},\_),(\_,\_,\text{low})
+		\rangle \\
+		&\langle
+		(\_,\text{schedule},\text{low}),(\_,\text{schedule},\_),(2,\_,\_)
+		\rangle
+	\end{align*}
+	which then have to be matched against the complete stream database.
+	This process would have to be repeated for all combinations of query
+	tuples to get all possible merged queries.
+}
+Moreover, function \textsc{GenerateReplacements} takes as input a query $q$
+and a symbol $s$, i.e., an attribute value or a variable that is to be
+replaced by a variable, which is not used in the query.
+The replacement routine first iterates through the number of symbols that can be replaced. In case of a variable (an attribute value) it is $[2,R(s)-2]$ ($[2,R(s)-1]$).
+Then, for each group size, it finds all combinations of possible replacements for the current query $q$.
+For example, let $s$ be a variable and $R(s)$=5. Let the positions of $s$
+within the query be $[1,2,3,4,5]$.
+Then the possible group sizes are 2 and 3.
+For group size 2, there are $\binom{5}{2}=10$ combinations: $
+(1,2),(1,3),\dots, (4,5)$.
+For group size 3, there are $\binom{5}{3}=10$ combinations: $
+(1,2,3),(1,2,4),\dots, (3,4,5)$.
+For each of the calculated positions, $s$ is replaced by the same variable $x$ which is not
+used in $q$.
+\change{The time complexity of the \textsc{GenerateReplacements} function is exponential, 
+$O(2^{R(s)})$, due to the generation of all combinations of replacements. 
+However, in practice, this complexity can be managed by typical constraints on 
+the values of $R(s)$ in the dataset and by applying optimizations to limit 
+the number of combinations generated.}
+The result is a set of
+queries which are less specific than query $q$ and, therefore, not
+descriptive.
+\subsection{D-U-S \& B-S-S}
+\sstitle{D-U-S: DFS, pattern-type unified, attribute separated}
+As mentioned, the D-U-S algorithm, presented in \autoref{alg-bu-df-ds}, is a
+variant of the D-U-C algorithm, which also
+employs DFS and constructs queries in a unified manner.
+It discovers queries separately per attribute, before merging
+them to obtain the
+final result. The sets of queries per attribute are maintained in a
+dictionary $Q_{\mathcal{A}}: \mathcal{A} \rightarrow 2^{\mathcal{Q}}$, i.e.,
+$Q_{\mathcal{A}}(A)$ is the set of queries found for attribute $A\in
+\mathcal{A}$. The algorithm first constructs the projections of the streams
+on the attribute (\autoref{alg9:projection}), which are then used to run the
+D-U-C algorithm (\autoref{alg9:mining}). Note that setting flag $b$ to
+$\False$ means that the D-U-C algorithm will return all found queries, not
+only those that are descriptive. The queries discovered per attribute are
+then merged, as detailed above, before the non-descriptive queries are
+removed from the result.
+\sstitle{B-S-S: BFS, pattern-type separated, attribute separated}
+The B-S-S algorithm is defined in \autoref{alg-bu-bf-ds}. It is a variant of
+B-S-C, adopting BFS and the separated
+discovery of type queries and pattern queries. Yet, it first considers
+queries per attribute, which are again collected in a
+dictionary $Q_{\mathcal{A}}: \mathcal{A} \rightarrow 2^{\mathcal{Q}}$,
+before merging them using the algorithm introduce above. As such, it
+adopts the strategy explained above for D-U-S, just with B-S-C as the base
+algorithm.
+\begin{algorithm}[t]
+	\footnotesize
+	\caption{D-U-S}
+	\label{alg-bu-df-ds}
+	\KwIn{\, \ Stream database $D$, event schema $\mathcal{A}$, sequence of
+		query var. $\mathcal{X}^<$.}
+	\KwOut{Set of descriptive queries $Q$.}
+	\BlankLine
+	\tcc{\scriptsize Set of queries and parent dict. per
+		attribute}
+	$\mathit{Q_{\mathcal{A}}, P_{\mathcal{A}} \leftarrow \emptyset}$\;
+	\ForEach{$A\in\mathcal{A}$}{$Q_{\mathcal{A}}(A), P_{\mathcal{A}}(A)
+		\leftarrow \emptyset,\emptyset$\;}
+	\tcc{\scriptsize Use D-U-C to discover queries per attribute}
+	\ForEach{$A\in\mathcal{A}$}{
+		\label{alg9:projection}
+		$D_A \leftarrow \{\langle (e_1.A), \dots, (e_{l}.A)\rangle
+		\mid \langle e_1,\ldots, e_l\rangle \in D \}$\;
+		\label{alg9:mining}
+		$Q_{\mathcal{A}}(A),P_{\mathcal{A}}(A)\leftarrow
+		\textsc{D-U-C}(D_A,(A),\mathcal{X}^< ,\False)$\;
+	}
+	$P \leftarrow \cup_{A\in\mathcal{A}} P_\mathcal{A}(A)$\;
+	\tcc{\scriptsize Merge queries found per attribute}
+	$Q \leftarrow
+	\textsc{MergeAttributeQueries}(Q_{\mathcal{A}},P,\mathcal{A},D,\mathcal{X}^<)$\;
+	$Q \leftarrow
+	\textsc{DescriptiveQueries}(Q,\Gamma_D,\mathcal{A},\mathcal{X}^<)$\;
+	\Return $\mathit{Q}$\;
+\end{algorithm}
+\begin{algorithm}[t]
+	\footnotesize
+	\caption{B-S-S}
+	\label{alg-bu-bf-ds}
+	\KwIn{\, \ Stream database $D$, event schema $\mathcal{A}$, sequence of
+	query var. $\mathcal{X}^<$.}
+	\KwOut{Set of descriptive queries $Q$.}
+	\BlankLine
+	\tcc{\scriptsize Set of queries and parent dict. per
+		attribute}
+	$\mathit{Q_{\mathcal{A}}, P_{\mathcal{A}} \leftarrow \emptyset}$\;
+	\ForEach{$A\in\mathcal{A}$}{$Q_{\mathcal{A}}(A), P_{\mathcal{A}}(A)
+		\leftarrow \emptyset,\emptyset$\;}
+	\tcc{\scriptsize Use B-S-C to discover queries per attribute}
+	\ForEach{$A\in\mathcal{A}$}{
+		\label{alg10:projection}
+		$D_A \leftarrow \{\langle (e_1.A), \dots, (e_{l}.A)\rangle
+		\mid \langle e_1,\ldots, e_l\rangle \in D \}$\;
+		\label{alg10:mining}
+	        $Q_{\mathcal{A}}(A),P_A\leftarrow
+	\textsc{B-S-C}(D_A,(A),\mathcal{X}^< ,\False)$\;
+	}
+	$P \leftarrow \cup_{A\in\mathcal{A}} P_\mathcal{A}(A)$\;
+	\tcc{\scriptsize Merge queries found per attribute}
+	$Q \leftarrow
+	\textsc{MergeAttributeQueries}(Q_{\mathcal{A}},P,\mathcal{A},D,\mathcal{X}^<)$\;
+	$Q \leftarrow
+	\textsc{DescriptiveQueries}(Q,\Gamma_D,\mathcal{A},\mathcal{X}^<)$\;
+	\Return $\mathit{Q}$\;
+\end{algorithm}

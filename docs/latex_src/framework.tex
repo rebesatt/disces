@@ -1,0 +1,195 @@
+\section{The \sys{} Framework}
+\label{sec:framework}
+This section introduces \sys{} as a framework for the systematic design of
+algorithms to address the problem of event query discovery. We first discuss
+dimensions along which design choices are captured (\autoref{sec:dimensions}),
+before turning to their combination (\autoref{sec:combinations}).
+\begin{table*}
+    \smaller
+	     \caption{Illustration of the dimensions that are incorporated in
+	     the design of
+		discovery algorithms as part of the \sys{} framework.}
+	\label{fig:dimensions_overview}
+	\vspace{-1em}
+	\begin{tabular}{crclll|llll|llll|lll}
+        \toprule
+        \multicolumn{6}{c}{Direction}
+                                & \multicolumn{4}{c}{Strategy} &
+        \multicolumn{4}{c}{Construction: Separated | Unified} & \multicolumn{3}{c}{Attributes: Separated | Comprehensive} \\
+        \midrule
+        \multicolumn{5}{c}{$\langle(a,5,11)\rangle$}             &                                                                                                                        &  \multicolumn{1}{l}{\tcbox[colback=white, colframe=black, on line, size=fbox]{\underline{$\langle(a,5)\rangle$}} }  &  &  &  & \multicolumn{1}{c}{{$\langle(x,y),(x,y)\rangle$}} & \multicolumn{1}{c}{{$\langle(a,5)\rangle$}} &   \multicolumn{1}{c}{{$\langle(x,5),(x,\_)\rangle$} }    &      &  \multicolumn{1}{c}{$\langle(x),(a),(x)\rangle$}    & \multicolumn{1}{c}{$\langle(5),(7)\rangle$} &  \multicolumn{1}{c}{$\langle(x,5),(x,7)\rangle$}  \\
+        \multicolumn{1}{l}{bottom} & \multirow{2}{*}{$\uparrow$} & \multirow{2}{*}{$\vdots$} & \multirow{2}{*}{$\downarrow$} & top & & \multicolumn{1}{c}
+     {$\uparrow$}   &  & & &  \multicolumn{1}{c}{$\uparrow$} &
+     \multicolumn{1}{c}{$\uparrow$} & \multicolumn{1}{c}{$\uparrow$}  &  &
+     \multicolumn{1}{c}{$\color{black}\uparrow$}  &
+     \multicolumn{1}{c}{$\uparrow$} &      \multicolumn{1}{c}{$\uparrow$}
+     \\
+        \multicolumn{1}{l}{up}     &
+        &                           &                               & down
+        &  &  \multicolumn{3}{c}{\tcbox[colback=white, colframe=black, on
+        line, size=fbox]{\underline{$\langle(a,\_)\rangle$};
+        $\langle(\_,5)\rangle$}}             &              &
+        \multicolumn{1}{c}{{$\langle(x,\_),(x,\_)\rangle$}} &
+        \multicolumn{1}{c}{$\langle(a,\_)\rangle$}&
+        \multicolumn{1}{c}{$\langle(x,\_),(x,\_)\rangle$}       &   &
+        \multicolumn{1}{c}{$\langle(x),(x)\rangle$}    &
+        \multicolumn{1}{c}{$\langle(5)\rangle$} &
+        \multicolumn{1}{c}{$\langle(x,5),(x,\_)\rangle$}
+        \\[1em]
+        \multicolumn{5}{c}{$\langle(a,\_,\_)\rangle$} &
+                              & \multicolumn{3}{c}{\underline{DFS} |
+        \tcbox[colback=white, colframe=black, on line, size=fbox]{BFS}}  & &
+        \multicolumn{1}{c}{\textcolor{black}{pattern queries} } &
+        \multicolumn{1}{c}{\textcolor{black}{type queries}}     &
+        \multicolumn{1}{c}{\textcolor{black}{mixed queries}}          & &
+        \multicolumn{1}{c}{\textcolor{black}{attribute 1}}    &
+        \multicolumn{1}{c}{\textcolor{black}{attribute 2}} & all attributes
+        \\
+        \bottomrule
+       \end{tabular}
+	\vspace{-1em}
+\end{table*}
+\subsection{Dimensions of Design Choices}
+\label{sec:dimensions}
+The \sys{} framework includes four dimensions for design choices that guide how
+the space of candidate queries is explored. These dimensions, illustrated in
+\autoref{fig:dimensions_overview}, refer to the following properties of the search
+through that space, which are detailed in the remainder:
+\begin{description}[itemsep=.3em,font=\normalfont\itshape,
+labelindent=0em,leftmargin=2.5em]
+    \item[Direction:] The search proceeds bottom-up or top-down.
+    \item[Strategy:] The approach is depth-first or
+    breadth-first.
+    \item[Construction:] Type and pattern queries are initially
+    constructed separately, or mixed queries are immediately
+    considered.
+    \item[Attributes:] Attributes are initially considered
+    separately, or immediately incorporated comprehensively.
+\end{description}
+\textbf{Direction.}
+When traversing the space of candidate queries, two directions may be considered:
+Bottom-up approaches start with the most generic query possible and, by adding
+attribute values or variables, generate stricter queries.
+The traversal stops, once the sequences in the database no longer support the
+explored queries.
+Top-down approaches start with a most specific query,
+i.e., a shortest \change{stream} of the given database.
+Then, they explore the search space by deleting attribute values or exchanging
+them with variables; stopping whenever queries that are supported by all sequences
+of the database have been found. Considering the example in
+\autoref{fig:dimensions_overview}, a bottom-up approach evaluates the query
+$\langle (a,\_,\_) \rangle$ before the more specific query $\langle (a,5,11)
+\rangle$, and vice versa for a top-down approach.
+\textbf{Strategy.} To explore candidate queries, one may adopt a
+depth-first search (DFS) strategy. Then, the space is traversed by
+generalizing or specializing the queries until a query with a different
+support behavior is reached, i.e., a non-supported query is generalized
+until it is supported (top-down direction) or a supported query is
+specialized until it is no longer supported (bottom-up direction). A
+different strategy
+is to adopt breadth-first search (BFS), i.e., to first explore all
+queries containing an equal number of non-placeholders, before continuing with
+those with less (top-down
+direction) or more (bottom-up
+direction) non-placeholders. In \autoref{fig:dimensions_overview},  assuming a
+bottom-up
+search direction, from query
+$\langle (a,\_) \rangle$, DFS would continue with the stricter query
+$\langle (a,5) \rangle$, whereas BFS would first consider queries with the
+same number of non-placeholders, such as $\langle (\_,5) \rangle$.
+\textbf{Construction.}
+Another algorithmic choice is whether to construct type queries and pattern
+queries separately or with a unified approach. The former means that the
+space of candidate type queries and the space of candidate pattern
+queries are explored independently, before merging the results to also
+obtain the descriptive mixed queries. Note that the isolated discovery of
+type queries corresponds to the common problem of maximal frequent sequence
+mining~\cite{10.1007/978-3-319-06483-3_8,10.1007/978-3-642-53914-5_15,10.1145/2757217}.
+In a unified approach, in turn, all query structures are explored as part of
+a single search space. In \autoref{fig:dimensions_overview}, a separated
+approach would explore pattern queries, e.g., $\langle (x,\_),(x,\_) \rangle$
+and subsequently $\langle (x,y),(x,y) \rangle$, and type queries, e.g.,
+$\langle (a,\_)\rangle$ and then $\langle(a,5) \rangle$ before merging them. A
+unified approach would directly construct mixed queries and explore, for
+instance, $\langle (x,5),(x,\_)\rangle$ after $\langle (x,\_),(x,\_)\rangle$.
+\textbf{Attributes.}
+Similarly, the attributes of an event schema induce a
+design choice for the exploration of the space of candidate
+queries. We may first
+explore each attribute separately, before merging the
+results to obtain the final set of descriptive queries; or rely on a
+comprehensive approach that explores all attributes
+simultaneously. Again, \autoref{fig:dimensions_overview} illustrates this
+design choice: We may consider the first attribute, exploring $\langle (x),(x)
+\rangle$ followed by $\langle (x),(a),(x) \rangle$, and the second attribute,
+exploring $\langle (5) \rangle$ followed by $\langle (5),(7) \rangle$ and merging them afterward;
+or immediately consider both attributes, by exploring $\langle
+(x,5),(x,\_) \rangle$ and then $\langle (x,5),(x,7) \rangle$.
+\subsection{Combination of Design Choices}
+\label{sec:combinations}
+Having described fundamental choices in the design of discovery algorithms,
+we review their interplay and underlying assumptions.
+First, the choice regarding the search direction, top-down
+vs. bottom-up, relates to an important assumption on the application scenario. A
+top-down search strategy will commence with a shortest stream of the
+database as a query, and step-wise generalize it until queries supported by
+the whole database are found. Hence, such an approach can be expected
+to work efficiently, if descriptive queries are only slightly shorter than
+the shortest stream in the database. In the scenarios outlined
+in \autoref{sec:motivation}, however, queries commonly
+contain solely a few terms and are generally much shorter than the available
+streams. Hence, a top-down exploration of candidate queries will
+quickly become intractable, due to the sheer size of the
+respective search space. In the remainder, we therefore focus on the
+instantiation of algorithms that adopt a bottom-up direction for
+the search.
+Second, we focus on the combination of search strategies (DFS vs. BFS) and
+the construction approach (type/pattern-separated vs. unified). As mentioned
+above, the separate construction of type queries and pattern queries enables
+us to incorporate existing results: The discovery of type queries in
+isolation corresponds to the maximal frequent sequence mining (MFSM)
+problem~\cite{agrawal1995}. Since state-of-the-art algorithms for the MFSM
+problem rely on BFS,
+we adopt it as the search strategy in any approach that is based on the
+separate construction of type queries and pattern queries.
+In contrast, for the unified construction of queries, a BFS search strategy is
+harmful. A bottom-up, unified
+construction of queries following BFS will explore mixed queries, for
+which it is known that they cannot be descriptive. For instance, the mixed
+queries
+$\langle (a),(a),(x_0),(x_0)\rangle$ and $\langle (x_0),(x_0),(b),(b) \rangle$ will be
+considered as candidates if the queries $\langle (a),(a),(b),(b) \rangle$ and
+$\langle (x_0),(x_0),(x_1),(x_1) \rangle$ are supported by the
+stream database, even
+though the mixed queries cannot be descriptive. A separated construction of
+queries avoids the issue, as
+does the combination of a unified construction with DFS.
+Third, the question whether to consider the attributes
+separately or comprehensively is largely orthogonal to the above
+design choices. Hence, the separate or comprehensive treatment of attributes
+may be combined with either of the above design choices.
+Based thereon, we derive the four combinations of design choices
+listed in \autoref{tab:algos}, which can be deemed suitable to design
+efficient algorithms for the problem of event query discovery.
+\begin{table}[h!]
+\vspace{-.5em}
+\caption{Combination of design choices for discovery algorithms.}
+\label{tab:algos}
+\vspace{-1em}
+\footnotesize
+\begin{tabular}{l@{\hspace{1em}} l@{\hspace{1em}} l@{\hspace{1em}}
+l@{\hspace{1em}} l}
+		\toprule
+		& Direction & Strategy & Construction & Attributes \\
+		\midrule
+		B-S-S & bottom-up & \underline{B}FS & \underline{S}eparated &
+		\underline{S}eparated\\
+		B-S-C & bottom-up & \underline{B}FS & \underline{S}eparated &
+		\underline{C}omprehensive \\
+		D-U-S & bottom-up & \underline{D}FS & \underline{U}nified &
+		\underline{S}eparated \\
+		D-U-C & bottom-up & \underline{D}FS & \underline{U}nified &
+		\underline{C}omprehensive \\
+		\bottomrule
+\end{tabular}
+\end{table}

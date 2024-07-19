@@ -1,0 +1,295 @@
+\section{Problem Setting}
+\label{sec:problem}
+We first discuss scenarios for event query discovery
+(\autoref{sec:motivation}). Next, we
+introduce a model for queries over event streams
+(\autoref{sec:streams}),
+before turning to the definition of the query discovery problem
+(\autoref{sec:discovery}).
+\subsection{Motivating Application Scenarios}
+\label{sec:motivation}
+We consider three scenarios for event query discovery, as follows:
+(1) \emph{Urban transportation:} Solutions to automated traffic management
+may exploit event data that captures spatial-temporal information on
+vehicles~\cite{DBLP:conf/edbt/ArtikisWSBLPBMKMGMGK14}. Here, event queries
+help to identify situations such as a delay on
+certain bus routes~\cite{yu2011bus}. Similarly, queries may relate to event
+patterns that
+indicate surges in the pricing adopted by taxi drivers. Either way, event
+queries need to correlate multivariate events along several dimensions, such
+as bus routes, levels of accumulated delays, or taxi types. Yet, the exact
+materialization of the situations of interest is likely to be unknown.
+\change{Hence, historic streams provide an opportunity to discover the
+respective queries, which may then be employed for online monitoring of the
+mentioned situations.}
+(2) \emph{Finance:} Applications in computational finance rely on
+events
+that indicate stock price changes and fulfilled
+trades~\cite{DBLP:journals/computer/ChandramouliAGSR10}. Here, event queries
+detect situations that indicate high-risk developments for a
+specific portfolio or identify fraudulent behaviour. Such queries typically
+span the joint
+occurrence of events in a particular order, with the need to correlate them
+based on their payload data, e.g., per stock symbol. Again, knowledge on the
+respective patterns is typically only
+partially available, \change{so that the discovery of event queries from
+historic streams provides a valuable starting point for the design of
+reactive applications.}
+(3) \emph{Cluster monitoring:} The supervision of
+infrastructures, such as compute clusters, is often approached using CEP
+systems. Here, events denote state transitions of tasks, the availability
+of resources, or changes in resource utilization~\cite{reiss2012towards}.
+Situations of interest include the build-up of massive resource demands or
+the presence of stragglers, and may be captured by event queries.
+\change{A database of streams of past occurrences of the situations enables
+discovery of queries that facilitate the detection of
+future operational issues.}
+\subsection{Event Streams and Queries}
+\label{sec:streams}
+\sstitlenoskip{Event streams}
+We adopt a model of multivariate event streams, similar to the one
+of relational data stream
+processing~\cite{DBLP:journals/vldb/ArasuBW06}. It is
+based on the
+notion of an \emph{event schema}, which is a tuple of attributes
+$\mathcal{A}= (A_1, \ldots, A_n)$. Each attribute $A_i$, $1\leq i\leq
+n$, is of a primitive data type, for which the finite domain is denoted by
+$\dom(A_i)$.
+Without loss of generality, we assume that all events have a single schema
+and that all domains
+are distinct, i.e., $\cap_{i=1}^n \dom(A_i) =
+\emptyset$. \change{If events actually have different attributes, they may
+be modelled with an event
+schema that is the union of all possible attributes, assigning a dedicated
+symbol that is ignored in the discovery process to attributes that are not
+set.}
+The schema includes an alphabet $\Gamma =
+\bigcup_{i=1}^n{\dom(A_i)}$, i.e.,
+the set of all attribute values.
+An \emph{event} $e=(a_1, \ldots, a_n)$ is a tuple of attribute
+values that instantiates the event schema, i.e., $a_i\in \dom(A_i)$ for $1\leq
+i\leq n$, and we write
+$e.A_i$ to refer to the value of attribute $A_i$ of event $e$.
+The starting point for query discovery is an \emph{event stream}, a finite
+sequence of events $S=\langle e_1, \ldots, e_l
+\rangle$ \change{that are ordered by their occurrence time, with $|S|$
+denoting its length. It represents a
+finite subsequence recorded of a
+potentially unbounded sequence of events.}
+Here, we write $S[i]$ for the $i$-th
+event in the stream. A \emph{stream database} is a set of
+streams $D=\{S_1,\ldots, S_d\}$, which are
+potentially overlapping in their contained events.
+A stream database $D$ induces the supported stream alphabet
+$\Gamma_D \subseteq \Gamma$, containing all values that occur in every stream,
+i.e.,
+$\Gamma_D = \{a \in \Gamma \mid \forall \ S \in D: \exists \
+j\in\{1,\dots,|S|\}, i\in\{1,\dots,n\}: S[j].A_i = a\}$.
+\sstitle{Event queries}
+Queries over event streams describe sequences of events that are
+correlated by predicates over their attribute
+values~\cite{DBLP:conf/sigmod/ZhangDI14,DBLP:journals/vldb/GiatrakosAADG20}.
+While many models include a time window for event occurrences, in our
+setting, the temporal
+context is induced by the streams of a database. \change{Hence, we
+do not model a time window explicitly, but note that it may be derived from
+the maximal time difference of events observed in one of the streams.}
+To capture event queries, we adopt a linearized
+representation,
+inspired by~\cite{DBLP:conf/btw/Kleest-Meissner23},
+that is well suited to describe discovery algorithms.
+Let $\mathcal{A} =
+(A_1, \ldots, A_n)$ be an event schema, $\mathcal{X}$ a finite set of variables
+with $\mathcal{X}\cap
+\Gamma=\emptyset$, and $\_ \notin \mathcal{X}\cup
+\Gamma$ a placeholder symbol. Then, a query term
+$t=(u_{1},\ldots,u_{n})$ is an $n$-tuple built of attribute
+values, variables, and placeholders, i.e.,
+$u_{j}\in \dom(A_j) \cup \mathcal{X} \cup \{ \_ \}$, $1\leq j\leq n$, such that
+not all its components are placeholders, i.e., it holds that $u_{j}\in
+\dom(A_j) \cup \mathcal{X}$ for at least one $1\leq j\leq n$.
+The empty query term $\varepsilon$ is the $n$-tuple comprising only
+placeholders, i.e., 
+$\varepsilon=(\_,\dots,\_)$.
+An event
+query is a finite sequence of query terms, $q=\langle t_1,\ldots,t_k \rangle$,
+with $q[i]$ denoting the $i$-th term. In a query, variables need to occur in at
+least two query terms for the same attribute, i.e., for any term
+$q[i]=(u_{1},\ldots,u_{n})$ with $u_j\in \mathcal{X}$,
+$1\leq i\leq k$ and $1\leq j\leq n$, there exists another query term
+$q[p]=(u'_{1},\ldots,u'_{n})$ with $u_j = u'_j$,
+$1\leq p\leq k$ and $p\neq i$. The empty query is defined as
+$\langle\varepsilon\rangle$, i.e., it contains only the empty query term.
+The universe of all possible queries is $\mathcal{Q}$.
+Intuitively, each query term characterizes an event that should be matched by
+the query. For each attribute, the term enforces a distinct value or
+permits any value of the respective domain. In the latter case, a placeholder
+models the absence of a constraint, whereas a variable that is used multiple
+times enforces equal attribute values.
+This way, equivalence
+predicates over attributes of events are modelled.
+Queries built of terms that contain only attribute values (and
+placeholders) are called \emph{type queries}; those built of terms of only
+variables (and placeholders) are called \emph{pattern queries}; while those
+that combine attribute values and variables are called \emph{mixed queries}.
+To define the query semantics,
+let $q=\langle t_1,\ldots,t_k \rangle$ be an event query and
+let $S=\langle e_1, \ldots , e_l\rangle$ be an event stream.
+A match of $q$ in $S$ is an injective mapping
+$m: \{1,\ldots,k\}\rightarrow \{1, \ldots, l\}$,
+such that:
+\begin{itemize}[nosep,left=1em]
+	\item for each query term $q[i]=(u_{1},\ldots,u_{n})$, $1\leq i\leq k$, the
+	mapped event $S[m(i)]=(a_1,\ldots, a_n)$ has the required
+	attribute
+	values, i.e., $u_j = a_j$ or $u_j\in \mathcal{X}\cup \{\_ \}$
+	for $1\leq 	j\leq n$;
+	\item variables are bound to the same attribute values, i.e., for query
+	terms $q[i]=(u_1,\ldots, u_n)$ and $q[p]=(u'_1,\ldots, u'_n)$, $1\leq
+	i,p\leq k$, it holds that $u_j\in \mathcal{X}$, $1\leq j\leq n$, with
+	$u_j=u'_j$ implies that $S[m(i)].A_j = S[m(p)].A_j$; and
+ 	\item the order of the events in the stream is preserved,
+ 	i.e., for $1\leq
+	i<p\leq k$, it holds $m(i)<m(p)$.
+\end{itemize}
+If there exists a match for query $q$ in stream $S$, we say that
+$S$ supports $q$ ($q$ matches $S$); and write $S \models q$.
+\autoref{tab:notations} lists our notations.
+\exampleboxh{Example 1 - Stream Database}{
+\label{ex1}
+Consider the following stream database with the three streams
+$S_1, S_2, S_3$:
+	\begin{center}
+	\medskip
+	{\footnotesize
+		\begin{tabular}{l lrrr}
+			\toprule
+			Stream & Event &  Job Id  &  Status  &  Priority\\
+			\midrule
+			$S_1$ & $e_{11}$   & 1 & schedule & low  \\
+			 & $e_{12}$   & 1 & kill & low  \\
+			 & $e_{13}$   & 1 & schedule & high  \\
+			 & $e_{14}$   & 1 & finish & high  \\
+			\midrule
+			$S_2$ & $e_{21}$   & 2 & schedule & low  \\
+			 & $e_{22}$   & 3 & schedule & high  \\
+			 & $e_{23}$   & 2 & evict & low  \\
+			\midrule
+			$S_3$ & $e_{31}$   & 4 & schedule & high  \\
+			 & $e_{32}$   & 5 & schedule & low  \\
+			 & $e_{33}$   & 4 & finish & high  \\
+			 & $e_{34}$   & 6 & schedule & low  \\
+			 & $e_{35}$   & 5 & evict & low  \\
+			\bottomrule
+	\end{tabular}}
+	\end{center}
+	\medskip
+ The following query $q = \langle
+ (x_0,\_,\_),(\_,\_,\text{high}),(x_0,\text{evict},\_) \rangle$
+ describes three consecutive events (but not necessarily \emph{immediately} consecutive) in which the first and the last event have the same job id,
+ the priority of the second event is high and the status of the last event is evict.
+The query does not match $S_1$, as there is no event
+with an evict status. Query $q$ matches $S_2$ and $S_3$, with $e_{21},
+e_{22}, e_{23}$ and $e_{32},e_{33},e_{35}$, respectively.
+}
+\subsection{Query Discovery}
+\label{sec:discovery}
+Given a stream database, the problem of event query discovery relates to
+the identification of event queries that are supported by all streams, i.e., for
+which there exists at least a single match for each stream.
+However, there may exist queries that are
+supported
+by all streams, but which are comparable in the sense that one of them
+is stricter than another one. Formally, a query $q$ is defined as stricter
+than a query $q'$, denoted by $q\prec q'$, if
+(i) for any possible stream $S$ (not necessarily contained in a given stream
+database), $S \models q$ implies $S
+\models q'$, and (ii) there exists a stream $S$, such that $S \models q'$,
+but $S \not\models q$.
+In event query discovery, we are only interested in the strictest queries
+that are supported by all streams. The reasoning being that these queries
+denote the most \change{concise} characterization of the patterns of events
+that
+indicate a situation of interest. For a stream database $D$, we therefore
+consider a notion of descriptiveness~\cite{icdt2022}: A query $q$ is descriptive for $D$,
+if it is supported by $D$ and
+there does not exist a query $q'$ that is stricter, $q'\prec q$, and that is
+also supported by the stream database $D$.
+Based thereon, we formulate the problem of event query discovery:
+\begin{problem}[Event Query Discovery]
+\label{problem}
+Given a stream database $D=\{S_1,\ldots, S_d\}$,
+the problem of event query discovery is to construct the set of queries $Q$,
+such that:
+\begin{itemize}[nosep,left=1em]
+  \item ${Q}$ is correct: each $q\in Q$ creates at least a single match for
+  all streams, i.e., for all $q\in Q$ and $S\in D$ it holds that $S \models
+  q$;
+  \item ${Q}$ is descriptive: only the strictest queries are considered,
+  i.e., for all $q,q'\in Q$ it holds that neither $q\prec q'$ nor $q'\prec q$;
+  \item ${Q}$ is complete: if a query $q$ is both correct and descriptive,
+  then it holds that $q\in Q$, \change{i.e., ${Q}$ contains all queries
+  that are both correct and descriptive.}
+  \end{itemize}
+\end{problem}
+\begin{table}[t]
+	\caption{Overview of notations.}
+	\label{tab:notations}
+	\vspace{-1.1em}
+	\footnotesize
+	\begin{tabularx}{0.47\textwidth}{l
+	@{\hspace{.5em}} p{5.8cm}}
+	\toprule
+	Notation & Explanation \\
+	\midrule
+	$\mathcal{A}=(A_1, \ldots, A_n )$ & An event
+	schema, a
+	tuple of attributes\\
+	$\Gamma  = \bigcup_{i=1}^n{\dom(A_i)}$ & The stream alphabet\\
+	$e= (a_1, \ldots, a_n)$ & An event, a tuple
+	of attribute values\\
+	$e.A_i$ & The value $a_i$ of attribute $A_i$ of
+	event $e$\\
+	$S=\langle e_1, \ldots, e_l \rangle$ & An event
+	stream, a finite sequence of events\\
+	$S[i]$ & The $i$-th event of the event stream $S$\\
+	$D=\{S_1,\ldots, S_d \}$ & A stream database, a
+	set of event streams\\
+	$\Gamma_D$ & The supported stream alphabet of stream database $D$\\
+	\midrule
+	$\mathcal{X}$ & A finite set of query variables, $\mathcal{X} \cap
+	\Gamma=\emptyset$\\
+	$\_$ & A placeholder symbol, $\_ \notin \mathcal{X}\cup
+	\Gamma$\\
+	$t=(u_{1},\ldots,u_{n})$& A query term, an
+	$n$-tuple of attribute values, variables, and placeholders with $u_{j}\in
+	\dom(A_j) \cup \mathcal{X} \cup \{\_ \}$, $1\leq j\leq n$, such that not
+	all its components are placeholders\\
+	$\varepsilon=(\_,\ldots,\_)$& The empty query term, an
+$n$-tuple of placeholders\\
+	$q=\langle
+	t_1, \ldots, t_k \rangle$ & An event query, a finite sequence of
+	query terms \\
+	$q[i]$ & The $i$-th term of the query $q$\\
+	$\langle \varepsilon\rangle$ & The empty query containing only the empty
+	query term \\
+	\midrule
+	$S \models q$ & The stream $S$ supports the
+	query $q$, i.e., there exists a match\\
+	\bottomrule
+	\end{tabularx}
+\end{table}
+\exampleboxh{Example 2 - Descriptive Query}{
+Let us consider the following two queries:
+\begin{align*}
+    q_1 &= \langle (x_0,\text{schedule},\text{low}),(\_,\_,\text{high}),(x_0,\_,\_)
+    \rangle \\
+     q_2 &= \langle (x_0,\text{schedule},\text{low}),(x_0,\_,\_) \rangle.
+\end{align*}
+Both queries match the stream database of Example~1.
+Also, $q_1$ is stricter than $q_2$, as any stream that matches $q_1$ will
+also match $q_2$, but not vice versa. Query $q_1$ is descriptive, since
+there is no other query
+which is stricter than $q_1$ and matches the stream database $D$ from
+Example~1.
+}

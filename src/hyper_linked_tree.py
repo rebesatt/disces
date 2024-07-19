@@ -6,7 +6,7 @@ import itertools
 import numpy as np
 import re
 from query import string_to_normalform
-from datasets.DISCES.DISCES.src.query_multidim import MultidimQuery
+from query_multidim import MultidimQuery
 from error import InvalidQuerySupportError
 
 #Logger Configuration:

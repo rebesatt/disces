@@ -11,7 +11,7 @@ import numpy as np
 
 from sample import Sample
 from discovery_bu_pts_multidim import discovery_bu_pts_multidim
-from datasets.DISCES.DISCES.src.query_multidim import MultidimQuery
+from query_multidim import MultidimQuery
 from query import Query
 
 
@@ -120,21 +120,7 @@ def domain_unified_discovery_smarter(sample, supp, max_query_length, only_types=
     parent_dict.update({child._query_string: query for child in children})
     grand_children = []
     non_descriptive = set()
-    # non_descriptive.add(gen_event)
-    # for child_query in children:
-    #     dictionary.update({child_query._query_string:matching})
-    #     matching_dict.update({child_query._query_string:child_query})
-    #     if '$' not in child_query._query_string:
-    #         temp_dict = {}
-    #         for key, value in vsdb[child_query._query_string].items():
-    #             temp_dict[key] = value[0]
-    #         dict_iter[child_query._query_string] = temp_dict
-    #     g_children = _next_queries_multidim(child_query,alphabet, max_query_length, patternset)
-    #     if g_children:
-    #         stack.extend(g_children)
-    #         parent_dict.update({child._query_string: query for child in g_children})
-    #     else:
-    #         query_dict[child_query._query_string] = child_query
+    
     stack.extend(children)
     
     
@@ -151,9 +137,7 @@ def domain_unified_discovery_smarter(sample, supp, max_query_length, only_types=
         current_time = time.time()
         if current_time - start_time > 43200: # 12 hours
             break
-        # if current_time - last_print_time > 300:
-        #     LOGGER.info('Current query: %s; current stack size: %i; Current Query count: %i', querystring, len(stack), querycount)
-        #     last_print_time = current_time
+        
         parent = parent_dict[querystring]
         parentstring = parent._query_string
         matching= query.match_sample(sample = sample, supp= supp, dict_iter = dict_iter, patternset = patternset, parent_dict = parent_dict)
@@ -182,16 +166,7 @@ def domain_unified_discovery_smarter(sample, supp, max_query_length, only_types=
             query_non_descr= non_descriptive_queries_multidim(query=query, parent_dict=query_dict)
             non_descriptive.update(query_non_descr)
 
-        # not_seen= non_descriptive - query_dict.keys()
-        # while not_seen:
-        #     querystring2 = not_seen.pop()
-        #     if querystring2 in query_dict:
-        #         quer_non_descr= non_descriptive_queries_multidim(query=query_dict[querystring2], parent_dict=query_dict)
-        #     else:
-        #         quer_non_descr= non_descriptive_queries_multidim(querystring= querystring2, parent_dict=parent_dict)
-        #     #non_descriptives_dict[querystring2] = quer_non_descr
-        #     non_descriptive.update(quer_non_descr)
-
+        
 
         result_dict['queryset'] = set(query_dict.keys()) - non_descriptive - {gen_event}
         result_dict['matchingset'] = set(query_dict.keys()) - {gen_event}
@@ -251,8 +226,7 @@ def domain_seperated_discovery(sample, supp, matchtest, max_query_length:int):
     gen_event_list = [i for i in gen_event]
     patternset = {}
     for domain, domain_sample in dim_sample_dict.items():
-        # query2dom[domain] = {}
-        # descriptive_queries=[]
+        
         vert_db = domain_sample.get_att_vertical_sequence_database()
         domain_patternset = set([key for key in vert_db[domain].keys() for item in vert_db[domain][key].keys() if len(vert_db[domain][key][item]) >= 2])
         patternset[domain] = domain_patternset
@@ -404,18 +378,6 @@ def domain_seperated_discovery(sample, supp, matchtest, max_query_length:int):
             non_descriptives_dict[querystring] = quer_non_descr
         non_descriptive.update(quer_non_descr)
 
-    # not_seen= non_descriptive - descriptive_query_list
-    # while not_seen:
-    #     querystring2 = not_seen.pop()
-    #     if querystring2 not in non_descriptives_dict:
-    #         if querystring2 in matching_queryset:
-    #             quer_non_descr= non_descriptive_queries_multidim(query=query_dict[querystring2], parent_dict=matching_queryset)
-    #         else:
-    #             quer_non_descr= non_descriptive_queries_multidim(querystring= querystring2, parent_dict=matching_queryset)
-    #         non_descriptives_dict[querystring2] = quer_non_descr
-    #         non_descriptive.update(quer_non_descr)
-
-    # LOGGER.info('Merge 1: %i, Merge 2: %i', merge1, merge2)
     result_dict = {}
     result_dict['queryset'] = descriptive_query_list - non_descriptive
     result_dict['matchingset'] = descriptive_query_list
@@ -760,9 +722,6 @@ def _merge_domain_queries(querystring_dict , pos_dict, max_query_length):
         #return set()
         return {}
 
-    # all_positions = {domain: pos_dict[querystring]['trace_instances']
-    #                  for domain, querystring in querystring_dict.items()
-    #                  if querystring != gen_event}
     
     min_length = -1
     trace_id = 0
@@ -781,162 +740,9 @@ def _merge_domain_queries(querystring_dict , pos_dict, max_query_length):
     instance_trace_list = [all_positions[domain][trace_id] for domain in domain_indeces if trace_id in all_positions[domain]]
     # instance_trace_list = [all_positions[domain] for domain in domain_indeces]
     instance_pairs= list(product(*instance_trace_list))
-    # for pair in instance_pairs:
-    #     instance_positions = sorted(set(chain(*pair)))
-
+    
 
     return instance_pairs
-
-def _merge_domain_queries2(querystring_dict, query_dict, max_query_length):
-    """Given a set of querystrings from different domains, it returns possible merged queries.
-
-    Args:
-        querystring_dict (dict): dictionary with domain index as key and querystring as value.
-        query_dict (dict): dictionary containing the query object to the querystring.
-        max_query_length (int): max length of the resulting queries. Defaults to 10.
-
-    Returns:
-        Set of merged queries
-    """
-    if len(querystring_dict) <= 1:
-        #return set(querystring_dict.values())
-        # return {key: None for key in querystring_dict.values()}
-        if querystring_dict:
-            return tuple([tuple([tuple(tuple(range(list(querystring_dict.values())[0].count(' ') +1)))])])
-        else:
-            return tuple([tuple()])
-
-    query_list = list(querystring_dict.values())
-    domain_cnt = -1
-    for querystring in query_list:
-        if querystring:
-            domain_cnt = querystring.split()[0].count(';')
-            break
-
-    if domain_cnt == -1:
-        return tuple([tuple()])
-
-
-    dom_query_length = [query_dict[qstring]._query_string_length for qstring in query_list]
-    dom_number = len(query_list)
-    max_dom_query_length = sum(dom_query_length)
-    min_length = max(dom_query_length)
-    max_length = min(max_query_length, max_dom_query_length)
-
-    sliced_instance_positions = set()
-    for q_length in range(min_length,max_length+1):
-        overlap = max_dom_query_length - q_length
-        stable_query_length = int(max_dom_query_length/(q_length + overlap))
-        query_bases = stable_query_length * tuple(range(q_length))
-
-        if overlap != 0:
-            pos_query_lengths = list(combinations_with_replacement(range(q_length), r=overlap))
-            pos_positions=[]
-
-            for el in pos_query_lengths:
-                c= Counter(el)
-                most_repeat = c.most_common(1)[0]
-                if most_repeat[1]<= dom_number - stable_query_length:
-                    pos_positions.append(el)
-            instance_positions = [query_bases + el for el in pos_positions]
-
-        else:
-            pos_query_lengths= []
-            instance_positions = [query_bases]
-
-        for instance in instance_positions:
-            instances = calc_instance_pairs(sorted(instance), dom_query_length, max_dom_query_length)
-            for inst in instances:
-                sliced_instance_positions.add(inst)
-
-    # LOGGER.info('Instance Pairs: %i; Sliced instance positions: %i', len(instance_pairs), len(sliced_instance_positions))
-
-    # for pair in instance_pairs:
-    return sliced_instance_positions
-
-    for pair in sliced_instance_positions:
-        instance_positions = sorted(set(chain(*pair)))
-
-def _merge_domain_queries1(parent_queries, parent_dict= None, all_dictionary = None, max_query_length=10):
-    """
-
-    Args:
-        parent_queries (_type_): _description_
-    """
-    sliced_instance_positions = set()
-    children = []
-    dom_length = [i for i in range(len(parent_queries))]
-    dim_dict = {}
-
-    for dim, dim_list in enumerate(parent_queries):
-        # parent_list = []
-        dim_dict[dim] = {}
-        for querystring in dim_list:
-            domain_cnt = all_dictionary[querystring]._query_event_dimension
-            gen_event= ';' * domain_cnt
-            gen_event_list = [i for i in gen_event]
-            parentstring = parent_dict[querystring]._query_string
-            dim_dict[dim][parentstring] = set()
-            if all_dictionary[querystring]._last_inserted_ele:
-                dim_dict[dim][parentstring].add(all_dictionary[querystring]._last_inserted_ele)
-            else:
-                last_inserted_pos = max(all_dictionary[querystring]._pos_last_type_and_variable[:-1])
-                last_event = querystring.split()[last_inserted_pos].split(';')[:-1]
-                last_element = ''
-                for domain, att in reversed(list(enumerate(last_event))):
-                    if att:
-                        if not last_element or '$' not in att:
-                            last_element = ''.join(gen_event_list[:domain] + [att] + gen_event_list[domain:])
-                        elif int(att.strip('$x')) > int(last_element.strip(';$x')):
-                            last_element = ''.join(gen_event_list[:domain] + [att] + gen_event_list[domain:])
-                        else:
-                            pass
-                        if '$' not in att:
-                            break
-                dim_dict[dim][parentstring].add(last_element)
-
-
-        # parent_list = [parent_dict[querystring]._query_string for querystring in dim_list]
-        # dim_dict[dim] = parent_list
-    parent_set = []
-    for query_dict in dim_dict.values():
-        parent_set.extend(query_dict.keys())
-
-    most_common = Counter(parent_set).most_common()
-    for tup in most_common:
-        if tup[1] == 1:
-            pass
-        else:
-            alphabet_sets = [query_dict[tup[0]] for query_dict in dim_dict.values() if tup[0] in query_dict]
-            set_combinations = list(chain(*[list(permutations(att_list))  for att_list in  product(*alphabet_sets)]))
-            for event_list in set_combinations:
-                query_list = [all_dictionary[tup[0]]]
-                for event in event_list:
-                    queries = []
-                    for query in query_list:
-                        if '$' in event:
-                            # if query._query_string not in seen:
-                            if event.strip(';') in query._query_string:
-                                event_count = domain_cnt - event.lstrip(';').count(';')
-                                for ev in query._query_string.split():
-                                    if event.strip(';') in ev:
-                                        ev_count = ev.split(';').index(event.strip(';'))
-                                        break
-                                if event_count == ev_count:
-                                    queries.extend(_next_queries_multidim(query= query, alphabet=[], max_query_length=max_query_length))
-                                else:
-                                    queries.extend(_next_queries_multidim(query= query, alphabet=[], max_query_length=max_query_length))
-
-                            else:
-                                event_count = event.lstrip(';').count(';') -1
-                                queries.extend(_next_queries_multidim(query= query, alphabet=[], max_query_length=max_query_length))
-                            # seen.add(query._query_string)
-                        else:
-                            queries.extend(_next_queries_multidim(query= query, alphabet=[event], max_query_length=max_query_length))
-                    query_list = queries
-                children.extend(query_list)
-    return children
-
 
 
 def pos2query(querystring_dict, pair, adapted_querystring_dict, max_query_length):
@@ -1018,54 +824,6 @@ def pos2query(querystring_dict, pair, adapted_querystring_dict, max_query_length
     else:
         return ''
 
-# def pos2query(querystring_dict, pair, adapted_querystring_dict, max_query_length):
-#     new_query_parts = []
-#     instance_positions = sorted(set(chain(*pair)))
-#     if len(instance_positions) > max_query_length:
-#         return ''
-#     query_list = list(querystring_dict.values())
-#     domain_indeces = list(querystring_dict.keys())
-#     domain_cnt = query_list[0].split()[0].count(';')
-
-#     for pos in instance_positions:
-#         domain_pos = [idx for idx, p in zip(domain_indeces, pair) if pos in p]
-#         last_domain = -1
-#         instance_count = 0
-#         for domain in range(domain_cnt):
-#             if domain in domain_indeces:
-#                 if domain in domain_pos:
-#                     dom_instance = pair[domain_indeces.index(domain)]
-#                     instance_type = dom_instance.index(pos)
-#                     instance_count += 1
-#                     if last_domain >= 0:
-#                         new_query_parts.append(adapted_querystring_dict[domain].split()[instance_type].strip(';'))
-#                     else:
-#                         new_query_parts.append(adapted_querystring_dict[domain].split()[instance_type].strip(';'))
-#                     new_query_parts.append(';')
-#                 else:
-#                     new_query_parts.append(';')
-#             else:
-#                 new_query_parts.append(';')
-#             if domain == domain_cnt -1 and pos != instance_positions[-1]:
-#                 new_query_parts.append(' ')
-#             last_domain += 1
-
-#     if new_query_parts:
-#         new_query = ''.join(new_query_parts)
-#         var_count = 0
-#         for querystring in querystring_dict.values():
-#             if '$' in querystring:
-#                 var_count += 1
-#             if var_count > 1:
-#                 break
-#         if var_count > 1:
-#             normal_form = reposition_vars(new_query)
-#         else:
-#             normal_form = new_query
-#         return normal_form
-#     else:
-#         return ''
-
 
 
 
@@ -1090,40 +848,15 @@ def adapted_querystring(querystring_dict, query_dict):
         for idx, var_domain in enumerate(var_domains):
             var_domain_idx = domain_indeces.index(var_domain)
             if idx == 0:
-                # if query_list[var_domain_idx] in query_dict:
-                # pos_first_var=query_dict[query_list[var_domain_idx]]._pos_last_type_and_variable[1]
-                # else:
-                #     assert False
-                #     query= Query()
-                #     querystring = query_list[var_domain_idx]
-                #     query.set_query_string(querystring.replace(';', ''))
-                #     query.set_pos_last_type_and_variable()
-                #     pos_first_var = query._pos_last_type_and_variable[1]
-                #     query_dict[querystring] = query
+                
                 var_querystring = querystring_dict[var_domain].replace(';', '')
                 var_queryslist = var_querystring.split()
                 var_list =[int(event[2:])  for event in var_queryslist if event.startswith('$x')]
                 max_var = max(var_list)
-                # pos_first_var = var_list.index(max_var)
-                # last_variable_domain = var_domain
-                # last_variable = querystring_dict[last_variable_domain].split()[pos_first_var].split(';')[last_variable_domain]
-                # new_var = int(last_variable.strip('$x;')) +1
+                
                 new_var = max_var +1
             else:
-                # if query_list[var_domain_idx] in query_dict:
-                #     pos_first_var2= query_dict[query_list[var_domain_idx]]._pos_last_type_and_variable[1]
-                # else:
-                #     query= Query()
-                #     querystring = query_list[var_domain_idx]
-                #     query.set_query_string(querystring.replace(';', ''))
-                #     query.set_pos_last_type_and_variable()
-                #     pos_first_var2 = query._pos_last_type_and_variable[1]
-                #     query_dict[query_list[var_domain_idx]] = query
-
-                # last_variable_domain2 = var_domain
-                # last_variable2 = querystring_dict[last_variable_domain2].split()[pos_first_var2].split(';')[last_variable_domain2]
-                # new_var2 = int(last_variable2.strip('$x;')) +1
-
+                
                 var_querystring2 = querystring_dict[var_domain].replace(';', '')
                 var_queryslist2 = var_querystring2.split()
                 var_list2 =[int(event[2:])  for event in var_queryslist2 if event.startswith('$x')]
@@ -1176,26 +909,6 @@ def to_normalform(querystring):
     """
     if not querystring:
         return querystring
-
-    # domain_cnt= querystring.split()[0].count(';')
-    # gen_event= ';' * domain_cnt
-    # gen_querylist= [event  for event in querystring.split() if event != gen_event]
-    # gen_querystring = ' '.join(gen_querylist)
-    # counter2 = 0
-    # seen_vars= set()
-    # for event in gen_querylist:
-    #     for domain_letter in event.split(';'):
-    #         if '$x' in domain_letter and '_' not in domain_letter:
-    #             if gen_querystring.count(domain_letter) > 1:
-    #                 gen_querystring = gen_querystring.replace(domain_letter, f"$x_{counter2}")
-    #                 seen_vars.add(domain_letter)
-    #                 counter2+=1
-    #             else:
-    #                 gen_querystring= gen_querystring.replace(domain_letter, "")
-    #                 gen_querystring= gen_querystring.strip()
-    # gen_querystring= ' '.join([event for event in gen_querystring.split() if event != gen_event])
-    # if not gen_querystring:
-    #     return gen_event
 
     normal_query = MultidimQuery()
     normal_query.set_query_string(querystring, recalculate_attributes=False)

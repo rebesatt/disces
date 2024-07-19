@@ -615,13 +615,6 @@ class MultidimSample(Sample):
                     disjointness_list[trace_num] = -1
                 else:
 
-                    #t_diff = (number_of_types_before_pattern**2 - number_of_types_behind_pattern**2)
-                    #p_diff = (number_of_patterns_before_type**2 - number_of_patterns_behind_type**2)
-
-                    #t_dev = (number_of_types_in_pattern_range - t_ges/2)
-                    #p_dev = (number_of_patterns_in_type_range - p_ges/2)
-
-                    #disjointness_list[trace_num] = ((t_dev**2)*(p_dev**2) * t_diff * 8)/(t_ges**4 * p_ges**2) - ((t_dev**2)*(p_dev**2) * p_diff * 8)/(t_ges**2 * p_ges**4)
 
                     t_diff = (number_of_types_before_pattern**1 - number_of_types_behind_pattern**1)/t_ges
                     p_diff = (number_of_patterns_before_type**1 - number_of_patterns_behind_type**1)/p_ges

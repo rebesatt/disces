@@ -15,10 +15,10 @@ from argparse import RawTextHelpFormatter
 SCRIPT_ABS_DIR = os.path.abspath(__file__).replace("reproduce_paper.py", "")
 
 PROJECT_NAME = "DISCES"
-VERSION = "0.7.0"
-ZIP_LOCATION = "https://github.com/rebesatt/disces/raw/main/datasets/DISCES.zip"
-FINANCE_ZIP_LOCATION = "https://github.com/rebesatt/disces/raw/main/datasets/finance/finance.zip"
-GOOGLE_ZIP_LOCATION = "https://github.com/rebesatt/disces/raw/main/datasets/google/google.zip"
+VERSION = "0.8.3"
+ZIP_LOCATION = "https://anonymous.4open.science/api/repo/disces-0E5B/file/datasets/DISCES.zip"
+FINANCE_ZIP_LOCATION = "https://anonymous.4open.science/api/repo/disces-0E5B/file/datasets/finance/finance.zip"
+GOOGLE_ZIP_LOCATION = "https://anonymous.4open.science/api/repo/disces-0E5B/file/datasets/google/google.zip"
 
 PYTHON_COMMAND = "python"
 
@@ -41,6 +41,11 @@ def verify_requirements():
         print_to_std_and_file("Running this script requries Python >= 3.10. Please upgrade your Python and retry again.")
         sys.exit(1)
     any_package_missing = False
+    try:
+        import requests
+    except:
+        print_to_std_and_file("Python package 'requests' is not installed.")
+        any_package_missing = True
     try:
         import pandas
     except:
@@ -71,16 +76,26 @@ def verify_requirements():
     except:
         print_to_std_and_file("Python package 'func_timeout' is not installed.")
         any_package_missing = True
+    try:
+        import jinja2
+    except:
+        print_to_std_and_file("Python package 'jinja2' is not installed.")
+        any_package_missing = True
+    try:
+        import typing_extensions
+    except:
+        print_to_std_and_file("Python package 'typing_extensions' is not installed.")
+        any_package_missing = True
 
     if any_package_missing:
         print_to_std_and_file("This script requries all mentioned packages. Please install them manually.")
-        print_to_std_and_file("The missing packages can be installed in 'DISCES/' via 'python -m pip install -r requirements.txt'")
+        print_to_std_and_file("The missing packages can be installed in 'DISCES/' via '" + PYTHON_COMMAND + " -m pip install -r requirements.txt'")
         if not shutil.which("latex"):
             print_to_std_and_file("In addtion reproducing this script requries LaTeX. No LaTeX installation found.")
         sys.exit(1)
     else:
         if not shutil.which("latex"):
-            print_to_std_and_file("Note: Reporducing this script requries LaTeX. No LaTeX installation found.")
+            print_to_std_and_file("Note: Reproducing this script requries LaTeX. No LaTeX installation found.")
 
 def execute_shell_command(cmd, stdout_verification=None, b_stderr_verification=False):
     print_to_std_and_file("Executed command: " + cmd)
@@ -197,12 +212,7 @@ def download_and_extract_datasets(name, location):
 def create_synthetic_data():
     cur_wd = os.getcwd()
     os.chdir("datasets/synt/")
-    try:
-        execute_shell_command_with_live_output(PYTHON_COMMAND + " synt_sample_generator.py")
-    except Exception as e:
-        if os.path.isfile("./synt_sample_generator.py"):
-            print_to_std_and_file("Since '" + PYTHON_COMMAND + "' is not known, it is recommanded to specify the python version, e.g. 'python3 reproduce_paper.py --pv python3'.")
-        sys.exit(1)
+    execute_shell_command_with_live_output(PYTHON_COMMAND + " synt_sample_generator.py")
     os.chdir(cur_wd)
 
 def create_verification_file(local_result_dir, file_to_verify_execution):
@@ -236,7 +246,7 @@ def run_experiments(local_result_dir, run_command_prefix, functions, test_name_p
     assert os.path.isfile(local_result_dir + "/" + file_to_verify_execution)
 
 def compile_main_pdf():
-    figure_list = {"Figure 1": "sota_4_broken.pdf",
+    figure_list = {"Figure 1": "sota_4_broken_new.pdf",
                    "Figure 2": "rl_compare.pdf",
                    "Figure 3": "synt_plots.pdf",
                    "Figure 4": "cluster.pdf",
@@ -285,37 +295,6 @@ def compile_main_pdf():
                         print_to_std_and_file("Note: " + file_name + " (" + file + ") wasn't found in '" + project_root + "docs/latex_src/originals/'." +
                         "The " + file_type + " will not be included in the paper.")
 
-
-    for figure_name, figure_file in figure_list.items():
-        new_file_exists = os.path.isfile(local_result_dir + "/" + figure_file)
-        cur_file_exists = os.path.isfile(project_root + "docs/latex_src/img/" + figure_file)
-        old_file_exists = os.path.isfile(project_root + "docs/latex_src/originals/" + figure_file)
-        if new_file_exists:
-            if cur_file_exists and not old_file_exists:
-                if not os.path.isdir(project_root + "docs/latex_src/originals"):
-                    os.makedirs(project_root + "docs/latex_src/originals")
-                    print_to_std_and_file("'" + project_root + "docs/latex_src/originals' created.")
-                print_to_std_and_file("Replacing " + figure_name + " (" + figure_file + ") with the reproduced one. Original file can be found in '" + project_root + "docs/latex_src/originals/")
-                shutil.copyfile(project_root + "docs/latex_src/img/" + figure_file, project_root + "docs/latex_src/original_img/" + figure_file)
-            elif old_file_exists:
-                print_to_std_and_file("Copying " + figure_name + " (" + figure_file + ") to '" + project_root + "docs/latex_src/img/")
-                print_to_std_and_file("Note: original " + figure_name + " (" + figure_file + ") is in " + project_root + "docs/latex_src/originals/" + " available.")
-            else:
-                print_to_std_and_file("Copying " + figure_name + " (" + figure_file + ") to '" + project_root + "docs/latex_src/img/")
-                print_to_std_and_file("Note: original " + figure_name + " (" + figure_file + ") is not available.")
-            shutil.copyfile(local_result_dir + "/" + figure_file, project_root + "docs/latex_src/img/" + figure_file)
-        else:
-            if cur_file_exists and not old_file_exists:
-                print_to_std_and_file("Note: " + figure_name + " (" + figure_file + ") wasn't found in " + local_result_dir + ". Using the original figure from the paper.")
-            if not cur_file_exists:
-                if old_file_exists:
-                    print_to_std_and_file("Moving " + figure_name + " (" + figure_file + ") to '" + project_root + "docs/latex_src/img/")
-                    print_to_std_and_file("Note: " + figure_name + " (" + figure_file + ") wasn't found in " + local_result_dir + ". Using the original figure from the paper.")
-                    shutil.move(project_root + "docs/latex_src/originals/" + figure_file, project_root + "docs/latex_src/img/" + figure_file)
-                else:
-                    print_to_std_and_file("Note: " + figure_name + " (" + figure_file + ") wasn't found in '" + project_root + "docs/latex_src/originals/'." +
-                    " Plot will not be included in the paper.")
-
     os.chdir(project_root + "docs/latex_src/")
 
     execute_shell_command('pdflatex --interaction=nonstopmode main.tex')
@@ -343,8 +322,8 @@ def clean_working_directory():
     shutil.rmtree("datasets/synt/traces/", ignore_errors=True)
     shutil.rmtree("datasets/synt/types/", ignore_errors=True)
     shutil.rmtree("experiments/experiment_results/", ignore_errors=True)
-    os.chdir(project_root + "docs/latex_src/")
     try:
+        os.chdir(project_root + "docs/latex_src/")
         execute_shell_command('pdflatex -C')
     except:
         pass
@@ -355,23 +334,22 @@ if __name__ == "__main__":
             "Requirements:\n"
             "(1) Python >= 3.10",
             formatter_class=RawTextHelpFormatter)
-    parser.add_argument("--dd", dest="b_download_dataset",
-            help="if --dd is specified, the script only downloads the repository and external datasets and exits (without running any experiments)",
+    parser.add_argument("-dd", dest="b_download_dataset",
+            help="if the argument -dd is given, the script only downloads the repository and external datasets and exits (without running any experiments).",
             action='store_true')
-    parser.add_argument("--ilm", dest="b_run_extended_il_miner",
-            help="",
+    parser.add_argument("-ilm", dest="b_run_extended_il_miner",
+            help="if the argument -ilm is given, the experiments will include runs of the il-miner, which needs approximately additional 2 days.",
             action="store_true")
-    parser.add_argument("--noexp", dest="b_run_no_experiment",
-            help="",
+    parser.add_argument("-noexp", dest="b_run_no_experiment",
+            help="if the argument -noexp is given, the script skips the experiments and only (if necessary) downloads the project and complies the current version of the paper.",
             action="store_true")
-    parser.add_argument("--pv", dest="s_python_version",
+    parser.add_argument("-pv", dest="s_python_version",
             nargs='?',
-            help="",
+            help="-pv lets you specify another command to run all python scripts, e.g. using 'pyhton3' instead of 'python' (default).",
             type=str)
-    parser.add_argument("--C", dest="b_clean_working_directory",
-            help="",
+    parser.add_argument("-C", dest="b_clean_working_directory",
+            help="if the argument -C is given, the script (inside the project) resets the project to the downloaded state or (outside the project) deletes the project.",
             action="store_true")
-    #TODO: parser.add_argument("--vv", dest="b_run_extended_il-miner", help="", action="store_true")
     args = parser.parse_args()
 
     if args.b_clean_working_directory:
@@ -386,9 +364,9 @@ if __name__ == "__main__":
     print_to_std_and_file("======================== Reproduce '" + PROJECT_NAME + "'s Experiments ========================")
     print_with_timestamp("The script log is at " + str(log_file))
 
+    verify_requirements()
     project_root = download_repository()
 
-    verify_requirements()
     os.chdir(project_root)
 
     create_synthetic_data()
@@ -416,10 +394,10 @@ if __name__ == "__main__":
             run_ilm = ""
             if args.b_run_extended_il_miner:
                 run_ilm = "--ilm"
-            args = ["", "", "", "", run_ilm, "", ""]
-            assert len(functions) == len(args)
+            exp_args = ["", "", "", "", run_ilm, "", ""]
+            assert len(functions) == len(exp_args)
             try:
-                run_experiments(local_result_dir, PYTHON_COMMAND, functions.keys(), "experiments/", ".verification_file", args=args, estimated_runtimes=list(functions.values()))
+                run_experiments(local_result_dir, PYTHON_COMMAND, functions.keys(), "experiments/", ".verification_file", args=exp_args, estimated_runtimes=list(functions.values()))
             except AssertionError:
                 print_to_std_and_file("Experiments did not finish due to an error! Check the log for more details.")
 

@@ -408,11 +408,7 @@ class MultidimQuery(Query):
 
             return trace_matches
 
-        # var_numb = 0
-        # for domain, letter in enumerate(querystring.split()[last_positions[1]].split(';')):
-        #     if '$' in letter and var_numb <= int(letter.strip('$x;')):
-        #         var_domain = domain
-        #         var_numb = int(letter.strip('$x;'))
+        
         var_count = querystring.count('$x')
         cur_count = 0
         var_int = -1
@@ -1260,11 +1256,7 @@ class MultidimQuery(Query):
         querystring= self._query_string
         if not querystring:
             return MultidimQuery()
-        #self.set_pos_last_type_and_variable()
-        # pos_last_type_and_variable= self._pos_last_type_and_variable
-        # pos_last_type= pos_last_type_and_variable[0]
-        # pos_first_var= pos_last_type_and_variable[1]
-        # pos_last_var = pos_last_type_and_variable[2]
+
 
 
         
@@ -1463,44 +1455,6 @@ class MultidimQuery(Query):
                             event_dictionary[querystring][trace_idx] = instances
         return event_dictionary # type: ignore
 
-    # def query_pos_dict(self, event_db: dict, sample: MultidimSample, event_dictionary: dict | None = None, trace_list: list = [0]) -> dict:
-    #     sample_set = sample._sample
-    #     if not event_dictionary:
-    #         event_dictionary = {}
-        
-    #     querystring = self._query_string
-    #     if not querystring:
-    #         return event_dictionary
-        
-    #     if querystring not in event_dictionary:
-    #         event_dictionary[querystring] = {}
-        
-    #     for trace_idx in trace_list:
-    #         cur_trace = sample_set[trace_idx]
-    #         cur_trace_split = cur_trace.split()
-    #         querystring_split = querystring.split()
-    #         query_domains = [event.split(';')[:-1] for event in querystring_split]
-
-    #         if trace_idx not in event_dictionary[querystring]:
-    #             event_dictionary[querystring][trace_idx] = [[position] for position in self.event_db_positions(event_db, query_domains, trace_idx)]
-    #         else:
-    #             instances = []
-
-    #             for instance in event_dictionary[querystring][trace_idx]:
-    #                 last_position = instance[-1]
-
-    #                 new_positions = self.event_db_positions(event_db, query_domains, trace_idx, last_position)
-
-    #                 for new_pos in new_positions[::-1]:
-    #                     if new_pos > last_position:
-    #                         instances.append(instance + [new_pos])
-    #                     else:
-    #                         break
-                
-    #             if instances:
-    #                 event_dictionary[querystring][trace_idx] = instances
-        
-    #     return event_dictionary
 
 
     def event_db_positions(self, event_db, query_domains, trace_idx, last_position=-1):
