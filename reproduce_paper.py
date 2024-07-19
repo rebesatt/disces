@@ -180,10 +180,13 @@ def download_repository():
         print_to_std_and_file("Downloaded the project to " + project_root)
     shutil.rmtree(".temp_" + PROJECT_NAME)
 
+
+    shutil.copyfile(SCRIPT_ABS_DIR + "reproduce_paper.py", SCRIPT_ABS_DIR + "DISCES/reproduce_paper.py")
     os.chdir(project_root)
     download_and_extract_datasets("finance", FINANCE_ZIP_LOCATION)
     download_and_extract_datasets("google", GOOGLE_ZIP_LOCATION)
     os.chdir(SCRIPT_ABS_DIR)
+    print_to_std_and_file("To prevent this script from downloading on each run, use the 'reproduce_paper.py' script in '" + SCRIPT_ABS_DIR + "DISCES/'")
 
     return project_root
 
