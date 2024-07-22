@@ -23,7 +23,7 @@ os.chdir(EXPERIMENT_DIR)
 sys.path.insert(0, SRC_DIR)
 
 # Include files used for discovery here
-from datasets.DISCES.DISCES.src.query_multidim import MultidimQuery
+from query_multidim import MultidimQuery
 from sample_multidim import MultidimSample
 from testbench_helper_functions import generate_plots, match_algos
 
