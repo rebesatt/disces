@@ -8,14 +8,17 @@ import sys
 import subprocess
 import datetime
 import argparse
-import requests
+try:
+    import requests
+except:
+    pass
 from timeit import default_timer as timer
 from argparse import RawTextHelpFormatter
 
 SCRIPT_ABS_DIR = os.path.abspath(__file__).replace("reproduce_paper.py", "")
 
 PROJECT_NAME = "DISCES"
-VERSION = "0.8.3"
+VERSION = "1.0.0"
 ZIP_LOCATION = "https://anonymous.4open.science/api/repo/disces-0E5B/file/datasets/DISCES.zip"
 FINANCE_ZIP_LOCATION = "https://anonymous.4open.science/api/repo/disces-0E5B/file/datasets/finance/finance.zip"
 GOOGLE_ZIP_LOCATION = "https://anonymous.4open.science/api/repo/disces-0E5B/file/datasets/google/google.zip"
@@ -333,7 +336,7 @@ def clean_working_directory():
 
 if __name__ == "__main__":
     # Setup
-    parser = argparse.ArgumentParser(description =  "Reproduce ...\n"
+    parser = argparse.ArgumentParser(description =  "This script reproduces the results of the " + PROJECT_NAME + " project. It checks required libaries, downloads necessary dataset and scripts, runs the experiments, and compiles the paper with the new results if a latex compiler is available.\n"
             "Requirements:\n"
             "(1) Python >= 3.10",
             formatter_class=RawTextHelpFormatter)
@@ -341,7 +344,7 @@ if __name__ == "__main__":
             help="if the argument -dd is given, the script only downloads the repository and external datasets and exits (without running any experiments).",
             action='store_true')
     parser.add_argument("-ilm", dest="b_run_extended_il_miner",
-            help="if the argument -ilm is given, the experiments will include runs of the il-miner, which needs approximately additional 2 days.",
+            help="if the argument -ilm is given, the experiments will include runs of the il-miner, which needs approximately additional 7 days.",
             action="store_true")
     parser.add_argument("-noexp", dest="b_run_no_experiment",
             help="if the argument -noexp is given, the script skips the experiments and only (if necessary) downloads the project and complies the current version of the paper.",
@@ -386,13 +389,13 @@ if __name__ == "__main__":
             pass
         if not args.b_run_no_experiment:
             functions = {# "[Name]" : "[Runtime]"
-                    "cluster" : "85.200 seconds (23:40:00 h)",
-                    "correlation" : "2.400 seconds (00:40:00 h)",
-                    "exclude" : "8.400 seconds (02:20:00 h)",
-                    "rl_compare" : "-",
-                    "sota_4_broken" : "1.320 seconds (00:22:00 h)",
-                    "sota_acc" : "740 seconds (00:12:20 h)",
-                    "synt_plot" : "2.700 seconds (00:45:00 h)",
+                    "cluster" : "43.200 seconds (12:00:00 h)",
+                    "correlation" : "1.200 seconds (00:20:00 h)",
+                    "exclude" : "4.200 seconds (01:10:00 h)",
+                    "rl_compare" : "240 seconds (00:00:04 h)",
+                    "sota_4_broken" : "660 seconds (00:11:00 h)",
+                    "sota_acc" : "420 seconds (00:07:00 h)",
+                    "synt_plot" : "1.560 seconds (00:26:00 h)",
                     }
             run_ilm = ""
             if args.b_run_extended_il_miner:
@@ -402,7 +405,7 @@ if __name__ == "__main__":
             try:
                 run_experiments(local_result_dir, PYTHON_COMMAND, functions.keys(), "experiments/", ".verification_file", args=exp_args, estimated_runtimes=list(functions.values()))
             except AssertionError:
-                print_to_std_and_file("Experiments did not finish due to an error! Check the log for more details.")
+                print_to_std_and_file("Not all experiments without an error! Check the log for more details!")
 
         # Compile .tex to .pdf
         print_to_std_and_file("Compiling the paper.pdf...")
