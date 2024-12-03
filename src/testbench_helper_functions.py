@@ -525,13 +525,7 @@ def match_algos(sample_list: list, results: list, iterations: int, j: int|str, m
         dataframe = pd.DataFrame(results, columns=columns)
         dataframe.to_csv(file_path)
         # LOGGER.info('Finished %s', matching)
-    if 'queryset1' in locals():
-        for qs, quset in zip(['queryset2', 'queryset3', 'queryset5'], [queryset2, queryset3, queryset5]):
-            if qs in locals():
-                if queryset1 != quset:
-                    print(queryset1-quset)
-                    print(quset-queryset1)
-                    # assert queryset1 == quset
+    
                 
     return results, columns
 def change_sample(sample_list:list, pattern_type:int, rand_domain:list, pos:int, pos_list:list) ->list:

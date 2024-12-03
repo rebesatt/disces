@@ -403,6 +403,8 @@ if __name__ == "__main__":
                     "sota_4_broken" : "660 seconds (00:11:00 h)",
                     "sota_acc" : "420 seconds (00:07:00 h)",
                     "synt_plot" : "1.560 seconds (00:26:00 h)",
+                    "scalability" : "--- seconds",
+                    "features_real" : "--- seconds",
                     }
             run_ilm = ""
             if args.b_run_extended_il_miner:

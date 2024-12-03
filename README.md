@@ -8,7 +8,7 @@ The experiments can be reproduced by running the scripts in the `experiments` di
 
 In order to run the experiments, first download the repository with:
 ```
-https://github.com/rebesatt/disces.git
+git clone https://github.com/rebesatt/disces.git
 ```
 
 Then inside the repository run the command:
