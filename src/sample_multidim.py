@@ -7,7 +7,7 @@ from sample import Sample
 from error import EmptySampleError,InvalidTraceError,InvalidQuerySupportError,InvalidSampleDimensionError
 
 #Logger Configuration:
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+LOG_FORMAT = '| %(message)s'
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel('INFO')
 FILE_HANDLER = logging.StreamHandler()
@@ -24,6 +24,9 @@ class MultidimSample(Sample):
             consists of events, separated by a whitespace. Events may be
             multidimensional and attributes (i.e. the single types of the
             event) are separated by semicolons.
+
+            _sample_list_split: List of lists. Each list represents a trace
+            and contains the events of the trace as lists of strings.
 
             _sample_size: Number of traces within the _sample.
 
@@ -59,6 +62,8 @@ class MultidimSample(Sample):
             given_sample = []
         self._sample:list = given_sample
         """List of strings representing traces. Default: []"""
+        self._sample_list_split:list = []
+        """List of lists representing traces. Default: []"""
         self._sample_size:int = len(self._sample)
         """Number of traces within _sample. Default: 0"""
         self._sample_event_dimension:int = 1
@@ -127,7 +132,7 @@ class MultidimSample(Sample):
         min_trace = min_max_avg_trace[0]
         max_trace = min_max_avg_trace[1]
         avg_trace_len = min_max_avg_trace[2]
-        type_distribution = self._get_type_distribution()
+        # type_distribution = self._get_type_distribution()
 
         statistic = {}
         statistic["sample size"] = self._sample_size
@@ -146,17 +151,17 @@ class MultidimSample(Sample):
         statistic["sample max trace len"] = max_trace.count(" ")+1
         statistic["sample average trace len"] = avg_trace_len
 
-        trace_length_distribution = self._get_trace_length_distribution()
-        statistic["sample trace length distribution"] = sorted(trace_length_distribution.items(), key=lambda x: x[1])
+        # trace_length_distribution = self._get_trace_length_distribution()
+        # statistic["sample trace length distribution"] = sorted(trace_length_distribution.items(), key=lambda x: x[1])
 
-        statistic["sample type distribution"] = type_distribution
-        statistic["sample type distribution ordered"] = sorted(type_distribution.items(), key=lambda x: x[1])
-        if factors is not None:
-            for factor in factors:
-                factor_distribution=self._get_factor_distribution(factor_length=factor,event_factors=event_factors)
-                statistic[f"sample {str(factor)} factor distribution"] = factor_distribution
-                statistic[f"sample {str(factor)} factor distribution ordered"] = sorted(factor_distribution.items(), key=lambda x: x[1])
-                statistic[f"sample {str(factor)} #factors"] = len(factor_distribution)
+        # statistic["sample type distribution"] = type_distribution
+        # statistic["sample type distribution ordered"] = sorted(type_distribution.items(), key=lambda x: x[1])
+        # if factors is not None:
+        #     for factor in factors:
+        #         factor_distribution=self._get_factor_distribution(factor_length=factor,event_factors=event_factors)
+        #         statistic[f"sample {str(factor)} factor distribution"] = factor_distribution
+        #         statistic[f"sample {str(factor)} factor distribution ordered"] = sorted(factor_distribution.items(), key=lambda x: x[1])
+        #         statistic[f"sample {str(factor)} #factors"] = len(factor_distribution)
         return statistic
 
     def _get_trace_length_distribution(self) -> dict:
@@ -417,7 +422,6 @@ class MultidimSample(Sample):
         else:
             raise IndexError("Attribute must be an interger from '-1' and 'event dimension -1'")
 
-    #TODO (all): should calc-functions have a return value?
     def calc_sample_supported_typeset(self, support:float, attribute:int=-1) -> set:
         """
             Collects all types which satisfy the given support (for the given
@@ -919,6 +923,8 @@ class MultidimSample(Sample):
         """
         self._sample_size = len(self._sample)
 
+    
+    
     def set_sample_event_dimension(self,uniform_dimension:bool=False) -> None:
         """
             Determines and set the maximum event dimension.
@@ -948,6 +954,23 @@ class MultidimSample(Sample):
                         trace = trace[len(event):]
         self._sample_event_dimension = dimension
 
+    def calc_sample_list_split(self) -> None:
+        """
+            Determines and calculates _sample_list_split for current _sample.
+        """
+
+        if not self._sample_list_split:
+            self._sample_list_split = [trace.split() for trace in self._sample]
+
+    def get_sample_list_split(self) -> list:
+        """
+            Determines and sets _sample_list_split for current _sample.
+        """
+
+        if not self._sample_list_split:
+            self.calc_sample_list_split()
+        
+        return self._sample_list_split
     ##################################################
 
     

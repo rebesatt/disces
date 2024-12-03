@@ -1,37 +1,44 @@
 \section{Related Work}
 \label{sec:related_work}
+
 Closest to our work are iCEP~\cite{icep} and the IL-Miner~\cite{ilminer},
 which both address the problem of event query discovery based on historic
 streams. Yet, both
 algorithms take ad-hoc design choices and adopt a restricted query model.
 iCEP cannot discover queries, in which attribute values
-occur multiple times. This limitation is overcome by the IL-Miner, which,
-however, cannot discover queries with query terms containing only
-variables. We showed empirically that this lossy version of the IL-Miner
-suffers from incomplete results. Also, our algorithms outperform an extended
-version of the IL-Miner and extend the set of problem
-instances that may be addressed.
+occur multiple times. This limitation is addressed by the IL-Miner, which,
+however, cannot discover queries comprising only variables.
+\update{M5\\R3O1}{We discuss these language limitations in more
+detail in our technical report~\cite{disces_TR}. However, we showed
+empirically that the lossy version of the IL-Miner
+suffers from incomplete results, while our algorithms outperform an extended
+version of it.}
+
 Our query model and the notion of descriptiveness is inspired
 by~\cite{icdt2022,DBLP:conf/btw/Kleest-Meissner23}. Yet, the discovery
 algorithms proposed in~\cite{icdt2022,DBLP:conf/btw/Kleest-Meissner23} are
 limited to finding
 \emph{some} descriptive queries, not all of them.
+
+
 Machine learning approaches to anticipate situations of
 interest provide an alternative angle to stream-based
 monitoring~\cite{yanli2021,ARECEP,autoCEP}. The main drawback of these
 methods,
 however, is the lack of traceability of the derived
-predictions. Using an approach to construct probabilistic state
-machines based on representation learning~\cite{yanli2021} in our
-evaluation, we observed correctness and completeness issues.
+predictions.
+
+
 Event query discovery is linked to frequent sequence
-mining~\cite{agrawal1995,clospan,bide}, which considers solely
+mining~\cite{agrawal1995,clospan,bide,DBLP:journals/csur/MabroukehE10}, which
+considers solely
 the level of attribute values, though. Our query model embeds a finite
 sequence into
 another sequence that satisfies certain
 constraints. This problem setting is ubiquitous in foundational algorithmic
-research, especially in combinatorial string
+research, e.g., in combinatorial string
 matching~\cite{DayEtAl2022,KoscheEtAl2022}.
+
 Pattern discovery has also been investigated for
 time-series data~\cite{streaming,crossmatch}, which, again, works only  on
 attribute values and ignores criteria to correlate events by means of

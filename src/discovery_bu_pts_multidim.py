@@ -17,7 +17,7 @@ PATTER_TYPE_SPLIT_DISCOVERY_ORDER = [
 FULL_CHECK_ON_SAMPLE = False
 
 #Logger Configuration:
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+LOG_FORMAT = '| %(message)s'
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel('INFO')
 FILE_HANDLER = logging.StreamHandler()
@@ -28,7 +28,8 @@ LOGGER.addHandler(FILE_HANDLER)
 MAX_QUERY_LENGTH = float('inf')
 
 def discovery_bu_pts_multidim(sample:MultidimSample, supp:float, use_tree_structure:bool=False, use_smart_matching:bool=False, discovery_order:str='type_first',
-        max_query_length:int=-1 ,find_descriptive_only:bool=True) -> list:
+        max_query_length:int=-1 ,find_descriptive_only:bool=True,
+        all_patternset = None) -> list:
     """
         Query Discovery by using a variant of pattern-type-split (BU) algorithm.
         Creates separate structures for pattern- and type-queries and combines them afterwards.
@@ -82,7 +83,10 @@ def discovery_bu_pts_multidim(sample:MultidimSample, supp:float, use_tree_struct
 
     # Init smart matching
     if use_smart_matching:
-        param_smart_matching = ({}, {}, {})
+        if all_patternset:
+            param_smart_matching = ({}, all_patternset, {})
+        else:
+            param_smart_matching = ({}, {}, {})
     else:
         param_smart_matching = None
     global MAX_QUERY_LENGTH
@@ -172,7 +176,6 @@ def discovery_bu_pts_multidim(sample:MultidimSample, supp:float, use_tree_struct
         time_total = time.time() - time_build_type_tree_start
         # LOGGER.info("> F total process with %s", str(time_total))
     else:
-        # TODO: spezifizieren!
         raise NotImplementedError("No exception for wrong input defined!")
 
 
@@ -198,8 +201,9 @@ def discovery_bu_pts_multidim(sample:MultidimSample, supp:float, use_tree_struct
             vertex = mixed_query_tree.find_vertex(querystring)
             if querystring:
                 matchingset[querystring] = vertex.query
-        result_dict['matchingset'] = matchingset
+        result_dict['matching_dict'] = matchingset
         result_dict['querycount'] = len(mixed_query_tree.vertices_to_list())
+        result_dict['query_tree'] = mixed_query_tree
     MAX_QUERY_LENGTH = float('inf')
 
     return (descriptive_mixed_queries,stats, result_dict)
@@ -265,7 +269,7 @@ def _search_type_multidim(sample:MultidimSample, given_pat:str, given_event:list
                 else:
                     new_query.set_query_matchtest('smarter')
                     pattern_is_frequent = new_query.match_sample(sample, supp, dict_iter= param_smart_matching[0], patternset=param_smart_matching[1],
-                            parent_dict=param_smart_matching[2])
+                            parent_dict=param_smart_matching[2], max_query_length=MAX_QUERY_LENGTH)
                 if pattern_is_frequent:
                     s_temp[dimension].add(symbol)
                     if already_existing_tree:
@@ -317,7 +321,7 @@ def _search_type_multidim(sample:MultidimSample, given_pat:str, given_event:list
             else:
                 new_query.set_query_matchtest('smarter')
                 pattern_is_frequent = new_query.match_sample(sample, supp, dict_iter= param_smart_matching[0], patternset=param_smart_matching[1],
-                        parent_dict=param_smart_matching[2])
+                        parent_dict=param_smart_matching[2], max_query_length=MAX_QUERY_LENGTH)
             if pattern_is_frequent:
                 s_temp_same_event[dimension].add(symbol)
                 if already_existing_tree:
@@ -391,6 +395,7 @@ def _build_type_tree_multidim(stats:dict, sample:MultidimSample, supp:float, use
                 current_event[dim] = symbol
                 mutation_index = dim+1
                 querystring = ";".join(current_event)+";"
+                param_smart_matching[0][querystring] = {key: value[0] for key, value in complete_vsdb[dim][symbol].items()}
                 new_query_vertex = type_queries.insert_query_string(root_vertex, ";".join(current_event)+";", query=MultidimQuery(querystring), search_for_parents=False,
                         set_descriptive_property=True)
                 new_query_vertex.query_next_insert_index = np.zeros(len(s_init), dtype=np.int8)
@@ -481,7 +486,7 @@ def _search_var_multidim(sample:MultidimSample, next_var_number:int, given_patte
                 else:
                     double_pat_query.set_query_matchtest('smarter')
                     dpq_is_frequent = double_pat_query.match_sample(sample, supp, dict_iter= param_smart_matching[0], patternset=param_smart_matching[1],
-                            parent_dict=param_smart_matching[2])
+                            parent_dict=param_smart_matching[2], max_query_length=MAX_QUERY_LENGTH)
 
                 if not dpq_is_frequent:
                     allow_new_variables_for_next_iter[dim] = False
@@ -511,7 +516,7 @@ def _search_var_multidim(sample:MultidimSample, next_var_number:int, given_patte
                 else:
                     new_query.set_query_matchtest('smarter')
                     pattern_is_frequent = new_query.match_sample(sample, supp, dict_iter= param_smart_matching[0], patternset=param_smart_matching[1],
-                            parent_dict=param_smart_matching[2])
+                            parent_dict=param_smart_matching[2], max_query_length=MAX_QUERY_LENGTH)
                 if pattern_is_frequent:
                     s_temp[dim].add(j)
                     if already_existing_tree:
@@ -565,7 +570,7 @@ def _search_var_multidim(sample:MultidimSample, next_var_number:int, given_patte
                 else:
                     new_query.set_query_matchtest('smarter')
                     pattern_is_frequent = new_query.match_sample(sample, supp, dict_iter= param_smart_matching[0], patternset=param_smart_matching[1],
-                            parent_dict=param_smart_matching[2])
+                            parent_dict=param_smart_matching[2], max_query_length=MAX_QUERY_LENGTH)
                 if pattern_is_frequent:
                     s_temp_same_event[dim].add(j)
                     if already_existing_tree:
@@ -631,7 +636,7 @@ def _check_frequency_of_query(stats:dict, sample:MultidimSample, supp:float, que
         pattern_is_frequent = query.match_sample(sample, supp)
     else:
         query.set_query_matchtest('smarter')
-        pattern_is_frequent = query.match_sample(sample, supp, dict_iter= param_smart_matching[0], patternset=param_smart_matching[1], parent_dict=param_smart_matching[2])
+        pattern_is_frequent = query.match_sample(sample, supp, dict_iter= param_smart_matching[0], patternset=param_smart_matching[1], parent_dict=param_smart_matching[2], max_query_length=MAX_QUERY_LENGTH)
     return pattern_is_frequent
 
 def _calculate_index_shift(stats:dict, var_to_next_insert_index_list:list, indices_to_increase:list, indices_to_replace:list, first_index:int, second_index:int|None=None,
@@ -712,14 +717,14 @@ def _search_var_smart_multidim(stats:dict, sample:MultidimSample, supp:float, al
         Passes:
             ValueError: from _check_frequency_of_query
     """
-    #TODO: Optimisation - rename variables and move "insert to next_element_queue" from between S-Extension and I-Extension to the bottom and replace new_var_allowed_for_i_ext in
     # s-Extensions by temp_new_var_allowed from s-Extension
     event_dimension = sample._sample_event_dimension
 
     # setup
     next_element_queue = []
 
-    for dim in range(0, event_dimension):
+    # for dim in range(0, event_dimension):
+    for dim in param_smart_matching[1]:
         single_event = dim*";" + "$x0" + (event_dimension-dim)*";"
         query_string = single_event + " " + single_event
 
@@ -774,7 +779,6 @@ def _search_var_smart_multidim(stats:dict, sample:MultidimSample, supp:float, al
                             next_vertex.query_next_insert_index[:dim+1] += np.ones(dim+1, dtype=np.int8)
                             already_existing_tree.set_match_results(next_vertex, new_query._query_matched_traces)
 
-                            # TODO: unused indicies_to_increase? oO
                             (new_var_to_next_insert_index_list, indicies_to_increase) = _calculate_index_shift(stats, var_to_next_insert_index_list, indices_to_increase,
                                     indices_to_replace, i)
 
@@ -787,7 +791,8 @@ def _search_var_smart_multidim(stats:dict, sample:MultidimSample, supp:float, al
                 if len(query_array) < MAX_QUERY_LENGTH-1:
                     insert_symbol = '$x' + str(current_var_num + 1)
 
-                    for dim in range(0, event_dimension):
+                    # for dim in range(0, event_dimension):
+                    for dim in param_smart_matching[1]:
                         for i in range(current_vertex.query_next_insert_index[0], query_length+1):
                             indices_to_increase = list(range(0,len(var_to_next_insert_index_list)))        # s_n should be enough as well
                             indices_to_replace  = []
@@ -875,11 +880,11 @@ def _search_var_smart_multidim(stats:dict, sample:MultidimSample, supp:float, al
             insert_symbol = '$x' + str(current_var_num + 1)
 
             # complete i-extention
-            for dim in range(0, event_dimension):
+            # for dim in range(0, event_dimension):
+            for dim in param_smart_matching[1]:
                 for i in range(current_vertex.query_next_insert_index[dim], query_length):                       # always take NVIIL[dim] for i-extension
                     if not query_array[i][dim] == "":
                         continue
-                    # TODO: unused indices_to_increase_1
                     indices_to_increase_1 = list(range(0,len(var_to_next_insert_index_list)))        # s_n should be enough as well
                     indices_to_replace  = []
                     for j in range(i+1, query_length):
@@ -911,7 +916,8 @@ def _search_var_smart_multidim(stats:dict, sample:MultidimSample, supp:float, al
 
             # mixed i-extention - first index
             if len(query_array) < MAX_QUERY_LENGTH:
-                for dim in range(0, event_dimension):
+                # for dim in range(0, event_dimension):
+                for dim in param_smart_matching[1]:
                     for i in range(current_vertex.query_next_insert_index[dim],query_length):
                         if not query_array[i][dim] == "":
                             continue
@@ -943,7 +949,8 @@ def _search_var_smart_multidim(stats:dict, sample:MultidimSample, supp:float, al
                                 ready_to_queue_list.append((next_vertex, new_query_array, new_var_to_next_insert_index_list, current_var_num+1, dim))
 
             # mixed i-extention - second index
-                for dim in range(0, event_dimension):
+                # for dim in range(0, event_dimension):
+                for dim in param_smart_matching[1]:
                     for i in range(current_vertex.query_next_insert_index[0], query_length):                         # always take NVIIL[0] for i-extension
                         indices_to_increase = list(range(0,len(var_to_next_insert_index_list)))        # s_n should be enough as well
                         indices_to_replace  = []
@@ -1027,8 +1034,19 @@ def _build_pattern_tree_multidim(stats:dict, sample:MultidimSample, supp:float, 
     """
     complete_vsdb = sample.get_att_vertical_sequence_database()
     if param_smart_matching:
-        for (i, single_dim_vsdb) in complete_vsdb.items():
-            param_smart_matching[1][i] = {key for key in single_dim_vsdb for item in single_dim_vsdb[key].keys() if len(single_dim_vsdb[key][item]) >= 2}
+        if not param_smart_matching[1]:
+            # all_patternset = {}
+            for (i, single_dim_vsdb) in complete_vsdb.items():
+                # param_smart_matching[1][i] = {key for key in single_dim_vsdb 
+                #                               for item in single_dim_vsdb[key].keys() 
+                #                               if len(single_dim_vsdb[key][item]) >= 2}
+                param_smart_matching[1][i] = {trace_id: set() for trace_id in range(len(sample._sample))}
+                for letter, pos_dict in single_dim_vsdb.items():
+                    for trace_id, positions in pos_dict.items():
+                        # if len(value[item]) >= 2:
+                        if len(positions) >=2:
+                            param_smart_matching[1][i][trace_id].add(letter)
+            # param_smart_matching = (param_smart_matching[0], all_patternset, param_smart_matching[2])
 
     pattern_queries = None
     if use_tree_structure:
@@ -1505,7 +1523,7 @@ def _build_mixed_query_tree_multidim(stats:dict, sample:MultidimSample, supp:flo
                     else:
                         new_query.set_query_matchtest('smarter')
                         query_is_frequent = new_query.match_sample(sample, supp, dict_iter= param_smart_matching[0], patternset=param_smart_matching[1],
-                                parent_dict=param_smart_matching[2])
+                                parent_dict=param_smart_matching[2], max_query_length=MAX_QUERY_LENGTH)
 
                     if query_is_frequent:
                         new_query.query_string_to_normalform()
@@ -1560,7 +1578,7 @@ def _build_mixed_query_tree_multidim(stats:dict, sample:MultidimSample, supp:flo
                         else:
                             new_query.set_query_matchtest('smarter')
                             query_is_frequent = new_query.match_sample(sample, supp, dict_iter= param_smart_matching[0], patternset=param_smart_matching[1],
-                                    parent_dict=param_smart_matching[2])
+                                    parent_dict=param_smart_matching[2], max_query_length=MAX_QUERY_LENGTH)
 
                         if query_is_frequent:
                             new_query.query_string_to_normalform()
@@ -1613,7 +1631,7 @@ def _build_mixed_query_tree_multidim(stats:dict, sample:MultidimSample, supp:flo
                     else:
                         new_query.set_query_matchtest('smarter')
                         new_query_is_frequent = new_query.match_sample(sample, supp, dict_iter= param_smart_matching[0], patternset=param_smart_matching[1],
-                                parent_dict=param_smart_matching[2])
+                                parent_dict=param_smart_matching[2], max_query_length=MAX_QUERY_LENGTH)
                     mixed_query_tree.set_match_results(new_vertex, new_query._query_matched_traces)
                     new_vertex.query = new_query
                     if not new_query_is_frequent:

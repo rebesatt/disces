@@ -7,7 +7,7 @@ import numpy as np
 from error import EmptySampleError,InvalidTraceError,InvalidQuerySupportError
 
 #Logger Configuration:
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+LOG_FORMAT = '| %(message)s'
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel('INFO')
 FILE_HANDLER = logging.StreamHandler()

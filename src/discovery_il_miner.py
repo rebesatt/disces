@@ -7,7 +7,7 @@ from itertools import product, chain, combinations
 from discovery_bu_multidim import to_normalform, non_descriptive_queries_multidim
 
 #Logger Configuration:
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+LOG_FORMAT = '| %(message)s'
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel('INFO')
 FILE_HANDLER = logging.StreamHandler()

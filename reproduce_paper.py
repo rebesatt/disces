@@ -19,9 +19,9 @@ SCRIPT_ABS_DIR = os.path.abspath(__file__).replace("reproduce_paper.py", "")
 
 PROJECT_NAME = "DISCES"
 VERSION = "1.0.0"
-ZIP_LOCATION = "https://anonymous.4open.science/api/repo/disces-0E5B/file/datasets/DISCES.zip"
-FINANCE_ZIP_LOCATION = "https://anonymous.4open.science/api/repo/disces-0E5B/file/datasets/finance/finance.zip"
-GOOGLE_ZIP_LOCATION = "https://anonymous.4open.science/api/repo/disces-0E5B/file/datasets/google/google.zip"
+ZIP_LOCATION = "https://github.com/rebesatt/disces/blob/main/datasets/DISCES.zip"
+FINANCE_ZIP_LOCATION = "https://github.com/rebesatt/disces/tree/main/datasets/finance/finance.zip"
+GOOGLE_ZIP_LOCATION = "https://github.com/rebesatt/disces/blob/main/datasets/google/google.zip"
 
 PYTHON_COMMAND = "python"
 
@@ -256,7 +256,13 @@ def compile_main_pdf():
                    "Figure 2": "rl_compare.pdf",
                    "Figure 3": "synt_plots.pdf",
                    "Figure 4": "cluster.pdf",
-                   "Figure 5": "exclude.pdf"}
+                   "Figure 5": "exclude.pdf",
+                   "Figure 6": "scalability_plots.pdf",
+                   "Figure 7": "rw_alphabet.pdf",
+                   "Figure 8": "rw_attributes_v2.pdf",
+                   "Figure 9": "rw_pattern.pdf",
+                   "Figure 10": "rw_types.pdf",
+                   }
     tex_list = {"Table 1": "sota_acc.tex",
                 "Table 2": "char_corr.tex",
                 "Table 3": "rl_compare.tex"}
@@ -371,7 +377,8 @@ if __name__ == "__main__":
     print_with_timestamp("The script log is at " + str(log_file))
 
     verify_requirements()
-    project_root = download_repository()
+    # project_root = download_repository()
+    project_root = SCRIPT_ABS_DIR + "/"
 
     os.chdir(project_root)
 

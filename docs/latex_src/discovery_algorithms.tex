@@ -1,4 +1,5 @@
 
+
 \section{\sys{} Algorithms}
 \label{sec:algos}
 Having introduced the \sys{} framework to capture important choices in the
@@ -9,19 +10,24 @@ database (\autoref{sec:matching}), and to merge queries
 (\autoref{sec:merging}). Based thereon, we propose four specific
 discovery algorithms (\autoref{sec:realizations}) that realize the above
 design choices.
+
 \subsection{Query Candidate Generation}
 \label{sec:candidate}
+
+
+
 Our discovery algorithms rely on an iterative generation of query candidates,
 which are then matched against a stream database. As detailed in
 \autoref{sec:framework}, we follow a
 bottom-up direction in the exploration of candidate queries and step-wise
-generate stricter queries for a given query $q$. \change{Initially, this
+generate stricter queries for a given query $q$. Initially, this
 query $q$ is the empty
-query, which will be elaborated further later.}
+query, which will be elaborated further later.
 The child queries of $q$ are those obtained by inserting
 a new variable, by inserting a variable that has been present already, or by
 inserting an attribute value; either way, considering an existing query term
 or a newly added query term.
+
 Variables are inserted in a certain order, which
 is reflected in a total order $<$ over a set of variables $\mathcal{X}$. To
 simplify the notation, we write $\mathcal{X}^<$ for the sequence of
@@ -29,6 +35,7 @@ variables induced by $<$ over $\mathcal{X}$. Also, our
 construction employs at most $s/2$ variables with $s=\min_{S\in D} |S|$
 being the minimal stream length in the stream database. Hence, the size of
 $\mathcal{X}$ and the length of $\mathcal{X}^<$ are bounded.
+
 Query candidate generation, formalized in
 \autoref{alg-bu-df:childquery}, takes as input a query $q$; an event
 schema $\mathcal{A}$; a supported alphabet $\Gamma_D$; a parent dictionary
@@ -37,13 +44,15 @@ function $P: \mathcal{Q} \to \mathcal{Q}$, mapping child queries to their
 parent; a sequence of variables $\mathcal{X}^<$; and a Boolean flag $b$ to
 control whether variables shall be inserted. The algorithm returns the set
 of child queries for $q$.
+
+
 \autoref{alg-bu-df:childquery} is divided into three parts, following an
 initialization (\autoref{alg1:init_start} - \ref{alg1:init_end}),
-each capturing one type of insertion. It is designed such that \emph{all}
+each capturing one type of insertion. It is designed such that \textbf{all}
 child queries are obtained by
 insertion
 of a single symbol (attribute value or variable) are constructed
-\emph{exactly once}. The generation relies on the auxiliary function
+\textbf{exactly once}. The generation relies on the auxiliary function
 $\textsc{Next}$
 (\autoref{alg1:next_start} - \ref{alg1:next_end}). Given a query, it
 generates query candidates by inserting a given symbol (variable or attribute value) in
@@ -52,12 +61,14 @@ contains a placeholder for that attribute. In addition, it
 generates candidates by appending a new query term to the query that
 is empty except for the given symbol for the given attribute. Based thereon,
 the three parts of the main algorithm include:
-\textit{Insertion of a new variable} (\autoref{rule:insertnewvar} -
+
+\textbf{Insertion of a new variable} (\autoref{rule:insertnewvar} -
 \ref{rule:insertnewvar_end}). For each attribute, we consider all query
 terms after the last occurrence of any attribute value ($g$) and after the first
 occurrence of the last inserted variable ($f$). Using function
 $\textsc{Next}$, a single new variable $\mathcal{X}^<[v+1]$ is introduced
 by replacing a placeholder or adding a new query term.
+
 \begin{figure}[t]
 \removelatexerror
 \begin{algorithm}[H]
@@ -80,8 +91,7 @@ by replacing a placeholder or adding a new query term.
 	$z \gets \max(g,f)$\;
 	$\mathit{n \leftarrow} |\mathcal{A}|$\;
 	\label{alg1:init_end}
-	\tcc{\scriptsize Shall variables be inserted?}
-	\If{$b= \True$}{
+	\If(\tcc*[f]{\scriptsize Shall variables be inserted?}){$b= \True$}{
 		$v \gets$ number of distinct query variables in $q$\;
 		\tcc{\scriptsize Insert a new variable
 			$\mathcal{X}^<[v+1]$}
@@ -101,6 +111,7 @@ by replacing a placeholder or adding a new query term.
 			$\mathcal{X}^<[v]$}
 		$l \gets$ last position of last inserted variable in $q$\;
 		$s \gets$ last inserted symbol in $q$\;
+
 		\If{$s=\mathcal{X}^<[v]$}{
 			\label{rule:insertexvar}
 			$\mathit{A \leftarrow}$ attribute $A\in \mathcal{A}$ with $s\in
@@ -123,13 +134,17 @@ by replacing a placeholder or adding a new query term.
 	}
 	\label{rule:inserttype_end}
 	\Return{$\mathit{P}$}
+
+
 	\BlankLine
+
 	\tcc{\scriptsize Function to generate the next candidate queries}
 	\FNext{\textnormal{query} $q$, \textnormal{start pos.} $s$,
 		\textnormal{attribute} $A$, \textnormal{symbol}	$y$,
 		\textnormal{number
 			of attributes} $n$}{
 		\label{alg1:next_start}
+
 		$\mathit{Q' \leftarrow \emptyset}$\;
 		\ForEach{$i\in \{s,\ldots, |q|\}$} %{$i = s;\ i \leq |q|;\
 			%i\text{++}$}
@@ -141,6 +156,7 @@ by replacing a placeholder or adding a new query term.
 				$q' \leftarrow  q$\;
 				$q'[i].A \leftarrow y$\;
 				$Q' \leftarrow Q' \cup \left\{q'\right\}$\;
+
 			}
 			\tcc{\scriptsize Generate candidate by including new query term
 				that
@@ -156,16 +172,18 @@ by replacing a placeholder or adding a new query term.
 		\label{alg1:next_end}
 	}
 \end{algorithm}
-\vspace{-1em}
+\vspace{-1.8em}
 \end{figure}
-\examplebox{Example 3 - Candidate Generation}{
+
+\begin{example}
+%\examplebox{Example 3 - Candidate Generation}{
 	\label{ex:children}
-	Let us consider the stream database $D$ and the query $q$ from Example~1
-	and
-	assume that `evict' was the most recently added symbol:
-	$$q = \langle (x_0,\_,\_),(\_,\_,\text{high}),(x_0,\text{evict},\_)
-	\rangle.$$
+	Consider the stream database from \autoref{ex1} and query
+	$q = \langle (x_0,\_,\_),(\_,\_,\text{high}),(x_0,\text{evict},\_)
+	\rangle$.
 	To generate new query candidates, we first add a new variable:
+
+	\vspace{-1.8em}
 	\begin{align*}
 		q_1 &= \langle
 		(x_0,\_,\_),(\_,\_,\text{high}),(x_0,\text{evict},x_1),(\_,\_,x_1)
@@ -180,15 +198,17 @@ by replacing a placeholder or adding a new query term.
 		(x_0,\_,\_),(\_,\_,\text{high}),(x_0,\text{evict},\_),(\_,\_,x_1),
 		(\_,\_,x_1)\rangle
 	\end{align*}
-	We do not insert existing variables, as it would happen
-	only if a variable was the last inserted symbol.
+
+	\vspace{-.4em}
+	\noindent
+	Assuming that `evict' was the symbol lastly added to $q$, we do not
+	insert existing variables. However, 	
 	
-	However, we also add supported attribute values (`schedule' for the
-	second
-	attribute (Status); `high' and `low' for the
-	third attribute
-	(Priority)), after the last occurrence of an attribute value:
+	we add supported attribute values (`schedule', and `high' and `low',
+	respectively), after the last occurrence of an attribute value:
 	
+
+	\vspace{-1.8em}
 	\begin{align*}
 		q_5 &= \langle
 		(x_0,\_,\_),(\_,\_,\text{high}),(x_0,\text{evict},\text{high})
@@ -203,68 +223,26 @@ by replacing a placeholder or adding a new query term.
 		q_9 &= \langle (x_0,\_,\_),(\_,\_,\text{high}),(x_0,\text{evict},\_)
 		,(\_,\_,\text{low})\rangle
 	\end{align*}
-}
-\examplebox{Example 4 - Matching}{
-	\label{ex:matching}
-	Let us consider stream $S_3$ and query $q$ from Example~1:
-	\begin{center}
-		\smallskip
-		{\footnotesize
-			\begin{tabular}{l lrrr}
-				\toprule
-				Stream & Event &  Job Id  &  Status  &  Priority\\
-				\midrule
-				$S_3$ & $e_{31}$   & 4 & schedule & high  \\
-				& $e_{32}$   & 5 & schedule & low  \\
-				& $e_{33}$   & 4 & finish & high  \\
-				& $e_{34}$   & 6 & schedule & low  \\
-				& $e_{35}$   & 5 & evict & low  \\
-				\bottomrule
-		\end{tabular}}
-	\end{center}
-	\smallskip
-	$$q = \langle (x_0,\_,\_),(\_,\_,\text{high}),(x_0,\text{evict},\_)
-	\rangle.$$
-	The parent query $p$ and its entry in the stream matches dictionary $T$
-	are:
-	\begin{align*}
-		p = \langle (x_0,\_,\_),(\_,\_,\text{high}),(x_0,\_,\_) \rangle
-		\text{ and }
-		T(p)=\{S_3 \mapsto \{ \langle 5\rangle \mapsto 5\}\}.
-	\end{align*}
-	To match $q$, we replace the variables with the according value:
-	$$q_{\textit{rep}}=\langle
-	(5,\_,\_),(\_,\_,\text{high}),(5,\text{evict},\_)
-	\rangle$$
-	and find the matching information of its parent query $p_{\textit{rep}}$:
-	\begin{align*}
-		p_{\textit{rep}}=\langle (5,\_,\_),(\_,\_,\text{high}),(5,\_,\_)
-		\rangle \text{ and }
-		T(p_{\textit{rep}})=\{S_3 \mapsto \{\langle \rangle \mapsto 5\}\}
-	\end{align*}
-	For $p_{\textit{rep}}$, a match is found in stream $S_3$ at the position
-	5.
-	When
-	searching for a match for $q_{\textit{rep}}$, we only need to consider
-	the
-	stream
-	positions starting at 5, where, in this instance, a match for
-	$q_{\textit{rep}}$ is
-	indeed found.
-	
-}
-\textit{Insertion of existing variable} (\autoref{rule:insertexvar} -
+\end{example}
+
+
+\textbf{Insertion of existing variable} (\autoref{rule:insertexvar} -
 \ref{rule:insertexvar_end}). To avoid redundant generation of child
 queries, this step is realized solely if the last insertion into the query
 had been the last inserted variable, i.e., $s=\mathcal{X}^<[v]$. Again,
 insertion of the variable is realized using $\textsc{Next}$.
-\textit{Insertion of attribute value} (\autoref{rule:inserttype} -
+
+
+\textbf{Insertion of attribute value} (\autoref{rule:inserttype} -
 \ref{rule:inserttype_end}).
 For each query term after the last occurrence of any attribute value ($g$) and after
-the first occurrence of the last inserted variable ($f$), and each attribute value in
-the supported alphabet, we insert a supported attribute value of the respective
+the first occurrence of the last inserted variable ($f$), we insert a
+supported attribute value of the respective
 attribute. Again, this is realized by replacing a placeholder or by
 appending a query term.
+
+
+
 \begin{figure}[t]
 	\removelatexerror
 	\begin{algorithm}[H]
@@ -277,9 +255,11 @@ appending a query term.
 	\KwOut{Match result $M\in \{\True,\False \}$, updated stream
 	matches dict. $T$.}
 	\SetKwFunction{FMatchStream}{\textnormal{\textsc{MatchStream}}}%
+
 	\BlankLine
 	$U\gets \emptyset$\;
 	\lForEach{$S\in D$}{$U(S) \leftarrow \emptyset$}
+
 	\ForEach{$S\in D$}
 	{
 		\label{alg2:for_stream_start}
@@ -290,10 +270,12 @@ appending a query term.
 		\ForEach{$\langle a_1,\ldots,a_k \rangle \in \dom(T(q_p)(S))$}
 		{
 			\label{alg2:for_binding_start}
+
 			\tcc{\scriptsize Replace variables in $q$ with attribute
 			values}
 			$q_{\mathit{rep}} \leftarrow
 			\textsc{replace}(q, \langle a_1,\ldots,a_k \rangle)$\;
+
 			\tcc{\scriptsize If replacement yielded type query, match
 			it}
 			\If{$q_{\mathit{rep}}$ is a type query}
@@ -308,6 +290,7 @@ appending a query term.
 					$U(S)(\langle a_1,\ldots,a_k \rangle)\leftarrow
 					T(q_{\mathit{rep}})(S)(\langle \rangle)$\;
 				}
+
 			}
 			\Else{
 				\tcc{\scriptsize Consider all bindings for the one variable
@@ -329,38 +312,42 @@ appending a query term.
 						$U(S)(\langle a_1,\ldots,a_k,a \rangle)\leftarrow
 						T(q_{\mathit{rep}})(S)(\langle \rangle)$\;
 					}
+
 				}
 			}
+
 		}
-	%\tcc{\scriptsize Abort, when no matches have been found for $S$}
 		\lIf{$N = \emptyset$}{
-%			\lForEach{$S\in D$}{$T(q)(S) \leftarrow \circ$}
 			\Return $\False$, $T$
 		}
+
 	}
 	$T(q)\leftarrow \{U(S)\mid  S\in D\}$\;
 	\Return $\True$, $T$\;
+
 	\BlankLine
 	\tcc{\scriptsize Function to match a type query against a single stream}
 	\FMatchStream{\textnormal{query} $q$, \textnormal{stream} $S$,
 		\textnormal{event schema} $\mathcal{A}$,
 		\textnormal{stream match. dict.} $T$}{
 		\label{alg2:match_stream_start}
-		
+
 		\tcc{\scriptsize Construct a parent query, dropping the last
 		query term}
         \lIf{$|q| = 1$}{
 		\label{alg2:match_stream_base_start}
         $p \leftarrow \langle \varepsilon \rangle$}
-        % $s \leftarrow q$\;}
         \lElse{$p \leftarrow \langle q[1], \dots, q[|q|-1] \rangle$}
 	$s \leftarrow \langle q[|q|] \rangle$\;
+
+
 		\lIf{$S \not\in \dom(T(p))$}
 		{\label{alg2:match_stream_pos}$T \leftarrow
 		\FMatchStream(\mathit{p,S,\mathcal{A},T}$)}
 		\tcc{\scriptsize Get last matching position of
 			parent query $p$ in $S$}
 		$m_p \leftarrow T(p)(S)(\langle \rangle)$\;
+
 		\tcc{\scriptsize Try to extend the match of the parent; capture the
 		obtained match position $m$ or $\circ$ for no match}
 		\If{$\exists \ i\in \{m_{p}+1,\dots,|S|\}: s\models
@@ -371,14 +358,17 @@ appending a query term.
 		\{m_{p}+1,\dots,|S|\}}{s\models
 				S[i]}$\;}
 		\lElse{$T(q)(S)(\langle \rangle)\gets \circ$}
+
 		\Return{$T$}
 		\label{alg2:match_stream_end}
 	}
 \end{algorithm}
 \vspace{-1em}
 \end{figure}
+
 \subsection{Query Matching}
 \label{sec:matching}
+
 As our algorithms explore the space of candidate queries
 incrementally, the evaluation of a query may
 benefit from the match results obtained for less strict queries at an
@@ -388,23 +378,85 @@ information
 and consider only the additional parts of a query and the remaining parts of
 the stream in the search for a match, thereby avoiding redundant
 computation.
+
 To realize the above idea, our matching algorithm maintains a stream matches
-dictionary $T: \mathcal{Q} \rightarrow \{D \rightarrow \{ \Gamma^*
-\rightarrow  \mathbb{N}\}\}$, which is a multi-level data structure storing
-match positions and variable bindings. The first level is a function
-that maps a query $q$ to a set of functions, which, at the second level of
-the structure, map a stream $S$ to another set of functions that capture the
+dictionary.
+\update{M6\\R3O2}{Intuitively, the dictionary stores where in each stream,
+the first match for a certain variable binding was found. This information
+is valuable, since our exploration proceeds by constructing child queries by
+appending query terms, and by replacing placeholders only after the last
+inserted symbols. As such, the position of the first match of a query in a
+stream denotes the starting point for the search for matches of all of its
+child queries.}
+
+\update{}{More precisely, the dictionary is a multi-nested map of
+signature $T:
+\mathcal{Q}
+\rightarrow \{D \rightarrow \{ \Gamma^*
+\rightarrow  \mathbb{N}\}\}$. The outer level is a function
+that maps a query $q$ to a set of functions, which, at the second level, map
+a stream $S$ to another set of functions that capture the
 information about matches. The latter set of functions maps a sequence of
 attribute values $\langle a_1,\ldots a_k \rangle \in \Gamma^*$ to a position
 $m\in \mathbb{N}$, where $k$ corresponds to the number of distinct variables
-in query $q$. Intuitively, $T(q)(S)(\langle a_1,\ldots a_k \rangle)$
-captures the last position of the first match of query $q$ with query
+in query $q$. When accessing the multi-nested
+map with $T(q)(S)(\langle a_1,\ldots a_k \rangle)$, we obtain the last
+position of the first match of query $q$ with query
 variables $\langle x_1,\ldots, x_k \rangle$ in stream $S$, when each
-variable $x_i$ is assigned the value $a_i$, $1\leq i\leq k$.
+variable $x_i$ is assigned the value $a_i$, $1\leq i\leq k$.}
 If $q$ does not contain any variables, the sequence of bound attribute
 values is empty, i.e., $T(q)(S)(\langle \rangle)$ points to the last
 position of the first match of $q$ in $S$.
+
+
+\begin{example}
+	\label{ex:matching}
+	Consider $q = \langle
+	(x_0,\_,\_),(\_,\_,\text{high}),(x_0,\text{evict},\_)
+	\rangle$ and stream $S_3$ from \autoref{ex1}:
+	\begin{center}
+		\smallskip
+		{\footnotesize
+			\begin{tabular}{l lrrr}
+				\toprule
+				Stream & Event &  Job Id  &  Status  &  Priority\\
+				\midrule
+				$S_3$ & $e_{31}$   & 4 & schedule & high  \\
+				& $e_{32}$   & 5 & schedule & low  \\
+				& $e_{33}$   & 4 & finish & high  \\
+				& $e_{34}$   & 6 & schedule & low  \\
+				& $e_{35}$   & 5 & evict & low  \\
+				\bottomrule
+		\end{tabular}}
+	\end{center}
+\update{M6\\R3O2}{The parent query is $p = \langle
+	(x_0,\_,\_),(\_,\_,\text{high}),(x_0,\_,\_) \rangle$ and its entry in
+	the stream matches dictionary is $T(p)=\{S_3 \mapsto \{ \langle 5\rangle
+	\mapsto 5\}\}$.
+
+	To match $q$, we replace the variables with the according value:}
+	$$q_{\textit{rep}}=\langle
+	(5,\_,\_),(\_,\_,\text{high}),(5,\text{evict},\_)
+	\rangle.$$
+\update{}{For the parent query $p_{\textit{rep}}=\langle
+	(5,\_,\_),(\_,\_,\text{high}),(5,\_,\_)
+	\rangle$, we get the match information as $T(p_{\textit{rep}})=\{S_3
+	\mapsto \{\langle \rangle
+	\mapsto 5\}\}$, i.e., there is a match of $p_{\textit{rep}}$ in $S_3$ at
+	position 5.}
+
+	When
+	searching for a match for $q_{\textit{rep}}$, we only need to consider
+	the
+	stream
+	positions starting at 5, where, in this instance, a match for
+	$q_{\textit{rep}}$ is
+	indeed found.
+	
+\end{example}
+
 We formalize our approach to query matching in \autoref{alg-bu-df:matching}.
+
 The algorithm iterates over each
 stream $S$ in the database $D$
 (\autoref{alg2:for_stream_start}).
@@ -417,9 +469,11 @@ be evaluated directly. Otherwise
 (\autoref{alg2:if_type_else}), all possible bindings for
 the remaining variable (there can only be one, as $q$ is a child of $q_p$)
 are considered.
+
 The evaluation of a type query for a specific stream is then formalized in
 function \textsc{MatchStream}
 (\autoref{alg2:match_stream_start}-\ref{alg2:match_stream_end}).
+
 It constructs the parent type query
 by dropping the last query term, and
 checks for the last matching position in stream $S$ as a starting point for
@@ -427,22 +481,27 @@ matching (\autoref{alg2:match_stream_pos}, obtaining it recursively, if it
 is not available). That is, for query $q$, we check the remaining part of
 the stream for matches of the added part, i.e., the last query term of $q$
 (\autoref{alg2:match_stream_if}).
+
+
 \subsection{Query Merging}
 \label{sec:merging}
-%\sstitle{Merging of type queries and pattern queries}
+
 In the \sys{} framework, some algorithms separate the discovery of (i) type
 queries and pattern queries, and (ii) queries per attribute. In either case,
 queries need to be merged at a later stage. Here, we focus on the merging of
 type queries and pattern queries, while the algorithm to merge queries
 obtained for individual attributes can be found in the
 appendix of the accompanying technical report~\cite{disces_TR}.
+
 \autoref{algo-bu-bf-merge-query-queues} defines our approach to merge a set
 of type queries $Q_t$ and a set of pattern queries $Q_p$.
+
 Our idea is to exploit the hierarchy
 among the type/pattern queries, and step-wise create mixed
 queries that become slightly
 more specific by incorporating exactly one additional attribute value or
 variable, respectively, in each step.
+
 The algorithm maintains a queue $O$ of merge options.
 Each element in $O$ comprises a type query $q_t$, a pattern query $q_p$, a
 mixed query $q_m$ constructed from $q_t$ and $q_p$, and an evolved query
@@ -451,6 +510,7 @@ variable, respectively. The queue is initialized with the root queries of
 the hierarchies (\autoref{alg3:init_start}-\ref{alg3:init_end}), i.e., the
 type and pattern queries without a parent, while the evolved query
 corresponds to one of their children.
+
 While the queue ${O}$ is not empty, each tuple $(\mathit{q_t}, \mathit{q_p},
 \mathit{q_m}, \mathit{q_e})$ is used to create more
 specific queries by merging $\mathit{q_e}$ into $\mathit{q_m}$ through
@@ -462,6 +522,8 @@ stream database (\autoref{alg3:match}). If all streams support the query
 further merge options are inserted into the queue
 (\autoref{alg3:options_start}-\ref{alg3:options_end}), which realizes a
 traversal of the hierarchy of type queries and pattern queries.
+
+
 \begin{figure}[t]
 	\removelatexerror
 	\begin{algorithm}[H]
@@ -473,8 +535,10 @@ traversal of the hierarchy of type queries and pattern queries.
 		\hspace{3em} \,  pattern query set
 		$Q_p$, parent dictionary $P$, stream matches dict. $T$. }
 	\KwOut{Set of merged queries $Q$.}
+
 	\BlankLine
 	$Q \gets \emptyset$; $O \gets$ empty queue\;
+
 	\tcc{\scriptsize Initialize the queue of merge options, incorporating
 		the roots of the hierarchies of type/pattern queries}
 	\ForEach{
@@ -492,14 +556,13 @@ traversal of the hierarchy of type queries and pattern queries.
 			\label{alg3:init_end}
 		}
 	}
-	
+
 	\While{$O$ not empty}{
 		$(q_t,q_p,q_m,q_e) \leftarrow O.\textsc{dequeue}()$\;
 		\tcc{\scriptsize Construct queries by merging $q_e$ into $q_m$}
 		$C,P\leftarrow$
 		\textsc{MergeMixedQueries}($\mathit{q_t,q_p,q_m,q_e,
 			P}$)\label{alg3:merge}\;
-		%{\scriptsize \tcp*{\autoref{alg-bu-df:mixedqueries}}}
 		\For{$q_{n}\in C$}{
 			$\mathit{M, T \leftarrow}
 			$\textsc{Match}($q_{n},\mathcal{A},D,P(q_n),T$)\label{alg3:match}\;
@@ -512,16 +575,17 @@ traversal of the hierarchy of type queries and pattern queries.
 					\label{alg3:options_start}
 					
 					\ForEach{$q \in \{q'\in P \mid P(q')= q_n\}$}{
-						$O.\textsc{enqueue}(q_e,q_p,q_{m},q)$\;}
+						$O.\textsc{enqueue}(q_e,q_p,q_{n},q)$\;}
 					\ForEach{$q \in \{q'\in P \mid P(q')= q_p\}$}{
-						$O.\textsc{enqueue}(q_e,q_p,q_{m},q)$\;}
+						$O.\textsc{enqueue}(q_e,q_p,q_{n},q)$\;}
 					
 				} \Else {
 					\ForEach{$q \in \{q'\in P \mid P(q')= q_n\}$}{
-						$O.\textsc{enqueue}(q_t,q_e,q_{m},q)$\;}
+						$O.\textsc{enqueue}(q_t,q_e,q_{n},q)$\;}
 					\ForEach{$q \in \{q'\in P \mid P(q')= q_t\}$}{
-						$O.\textsc{enqueue}(q_t,q_e,q_{m},q)$\;
+						$O.\textsc{enqueue}(q_t,q_e,q_{n},q)$\;
 						\label{alg3:options_end}}
+					
 				}
 			}
 		}
@@ -530,10 +594,14 @@ traversal of the hierarchy of type queries and pattern queries.
 \end{algorithm}
 \vspace{-1em}
 \end{figure}
+
+
+
 The merging of the evolved query $p_e$ into the mixed query $p_m$ is
 formalized in \autoref{algo-bu-bf-merge-queries}, which also takes the
 associated type query $q_t$ and pattern query $q_p$, and the parent
 dictionary $P$ as input.
+
 It first determines an index ${i_m}$
 (\autoref{alg4:index_start}-\ref{alg4:index_end}). It indicates until which
 query term the query $q_m$ cannot change anymore without creating a conflict
@@ -541,6 +609,7 @@ with queries $q_t$ and $q_p$ that form the basis for its construction. Here,
 the function \textsc{MergeTerms} merges query terms
 (\autoref{alg4:merge_start}-\ref{alg4:merge_end}), per attribute, returning
 the empty term (\autoref{alg4:merge_empty}), in case of a conflict.
+
 Based on index ${i_m}$, mixed queries are constructed by incorporating an
 additional attribute value
 (\autoref{alg4:const_type_start}-\ref{alg4:const_type_end}), either in one
@@ -552,6 +621,9 @@ query terms after ${i_m}$ of the original query with those of the evolved
 query, potentially merging the last term of the original query and the first
 of the evolved query. All these mixed queries are collected in the result
 set $Q$, while maintaining the parent dictionary $P$ for the queries.
+
+
+
 \begin{figure}[t]
 	\removelatexerror
 	\begin{algorithm}[H]
@@ -563,18 +635,23 @@ set $Q$, while maintaining the parent dictionary $P$ for the queries.
 	\hspace{3em} \, parent dictionary $P$. }
 	\KwOut{Set of merged queries $Q$, updated parent dictionary $P$.}
 	\SetKwFunction{FMergeEvents}{\textnormal{\textsc{MergeTerms}}}%
+
 	\BlankLine
     $i_t,i_p, i_m\gets 0,0,0$\;
+
     $Q \leftarrow \emptyset$\;
     $j \leftarrow$ position of last inserted symbol in query $q_m$\;
+
 	\tcc{\scriptsize Determine the index after which $q_m$ may still change }
     \While{$i_m < j$}{
 	\label{alg4:index_start}
         \lIf{$\FMergeEvents\left(q_t[i_t], q_m[i_m]\right) \ne
         \varepsilon$}{$i_t \leftarrow i_t + 1$}
+
         \lIf{$\FMergeEvents\left(q_p[i_p], q_m[i_m]\right) \ne
         \varepsilon$}{$i_p \leftarrow i_p + 1$}
         $i_m \leftarrow i_m + 1$\;
+
         \lIf{$\FMergeEvents\left(q_t[i_t], q_m[i_m]\right) = \varepsilon
         \land \newline \FMergeEvents\left(q_p[i_p],
         q_m[i_m]\right) = \varepsilon$}{
@@ -586,13 +663,11 @@ set $Q$, while maintaining the parent dictionary $P$ for the queries.
 		\tcc{\scriptsize Merge by incorporating an add. attribute
 		value}
         \For{$k \in \{i_m, \ldots, |q_m|\}$}{
-        	%$k \leftarrow i_m$; $k \le |q_m|$; $k\text{++}$}{
             $q' \leftarrow \langle q_m[1],..., q_m[k-1], q_t[|q_t|],
             q_m[k], ...,q_m[|q_m|]\rangle$\;
             $Q \leftarrow Q \cup \{ q' \}$; $P(q') \leftarrow q_m$\;
         }
         \For{$k \in \{i_m, \ldots, |q_m|\}$
-        	%$k \leftarrow i_m$; $k \le |q_m|$; $k\text{++}$
         }{
             $t \leftarrow \FMergeEvents\left(q_t[|q_t|], q_m[k]\right)$\;
             \If{$t \not = \varepsilon$}{
@@ -610,6 +685,7 @@ set $Q$, while maintaining the parent dictionary $P$ for the queries.
             q_e[|q_e|] \rangle$\;
             $Q \leftarrow Q \cup \{q'\}$; $P(q') \leftarrow q_m$\;
         }
+
         $t \leftarrow \FMergeEvents\left(q_m[i_m], q_e[i_p]\right)$\;
         \If{$t \not = \varepsilon$}{
         $q'\leftarrow \langle q_m[1],...,q_m[i_m-1],t,
@@ -619,12 +695,15 @@ set $Q$, while maintaining the parent dictionary $P$ for the queries.
 	    \label{alg4:const_pat_end}
     }
     \Return{$Q,P$}
-    \BlankLine
+
+
+
     \BlankLine
     \tcc{\scriptsize Function to merge two query terms}
     \FMergeEvents{\textnormal{query term} $t_1$, \textnormal{query term}
     $t_2$, \textnormal{event schema} $\mathcal{A}$}{
     \label{alg4:merge_start}
+
 	$t_m \gets t_1$\;
 	\ForEach{$A\in\mathcal{A}$}
 	{
@@ -637,21 +716,28 @@ set $Q$, while maintaining the parent dictionary $P$ for the queries.
 		\Return{$t_m$}
     \label{alg4:merge_end}
     }
+
 \end{algorithm}
 \vspace{-1em}
 \end{figure}
+
+
+
 \subsection{Realizations of Query Discovery}
 \label{sec:realizations}
+
 Using the above auxiliary algorithms, we can now instantiate four
 discovery algorithms, as outlined already in \autoref{tab:algos}. Below, we
 provide formalizations for two of the algorithms, D-U-C and B-S-C, and
 summarize the other two algorithms (for which a formalization can be found
 in~\cite{disces_TR}). We close with a
 discussion of their properties.
+
 \sstitle{D-U-C: DFS, pattern-type unified, attribute comprehensive}
 The algorithm, given in \autoref{alg-bu-df},
 employs a DFS strategy, constructs mixed queries directly, and incorporates
 all attributes right away.
+
 For a stream
 database $D$, an event schema
 $\mathcal{A}$, and
@@ -664,19 +750,20 @@ queries to explore.
 While this stack is not empty, candidate queries are assessed and generated
 (\autoref{alg5:while_start}-\ref{alg5:while_end}). That is, a query is
 popped from
-the stack and matched. Note
-that the
-empty query will match any stream. Following a successful match, child
+the stack and matched.
+
+Following a successful match, child
 queries are
 generated using function \textsc{ChildQueries} and extracted from the parent
 dictionary $P$ into a set $C$. If child queries exist, they are added to the
 stack;
 otherwise, the current query is added to the preliminary result set.
-In a post-processing step, a function \textsc{DescriptiveQueries} narrows
-down the set of queries supported by the database to those that are
-descriptive, which
-is achieved by a syntactic comparison of query terms (formalized in our
-technical report~\cite{disces_TR}).
+
+Finally, a function \textsc{DescriptiveQueries} (see our
+technical report~\cite{disces_TR}) selects the descriptive queries from all
+those supported by the database, by a syntactic comparison of query terms.
+
+
 \begin{figure}[t]
 	\removelatexerror
 	\begin{algorithm}[H]
@@ -692,17 +779,20 @@ technical report~\cite{disces_TR}).
 	$\mathit{Q \leftarrow \emptyset}$\;
 	$\Gamma_D \gets \{a \in \Gamma \mid \forall \ S \in D: \exists \
 	j\in\{1,...,|S|\}, i\in\{1,...,n\}: S[j].A_i = a\}$\;
+
 	$q \gets\langle\varepsilon\rangle$; $P(q) \gets
 	\langle\varepsilon\rangle$\;
 	\lForEach{$S\in D$}{
 		$T(q)(S)(\langle \rangle)\gets 0$
 	}
+
     \tcc{\scriptsize Explore queries that are pushed to the stack}
 	${O \leftarrow}$ empty stack; $O.\textsc{push}(q)$\;
 	\While{${O}$ not empty}
 	{
 		\label{alg5:while_start}
 		${q \leftarrow O}.\textsc{pop}()$\;
+
 		
 		$\mathit{M,T \leftarrow}$ \textsc{Match}(${q,\mathcal{A},D,P(q),T}$)
 		\;
@@ -732,30 +822,37 @@ technical report~\cite{disces_TR}).
 \end{algorithm}
 \vspace{-1em}
 \end{figure}
+
+
 \sstitle{B-S-C: BFS, pattern-type separated, attribute comprehensive}
 In \autoref{alg-bu-bf}, we show how discovery is realized with BFS,
 considering type queries and pattern queries separately, while incorporating
 all attributes at once. In general, the algorithm follows a similar
 structure compared to the previous one. However, the exploration is based on
 candidate queries that are maintained in queues to realize a BFS strategy.
-Also, the assessment of queries and, if they are supported by the stream
-database, subsequent generation of child queries is conducted separately for
+Also, the assessment of queries and
+
+generation of child queries is conducted separately for
 type queries (\autoref{alg6:while_type_start}-\ref{alg6:while_type_end}) and
-pattern type queries
+pattern queries
 (\autoref{alg6:while_pattern_start}-\ref{alg6:while_pattern_end}).
-Only once this exploration ended, mixed queries are
-considered based on the function \textsc{MergeMixedQuerySet}.
+
+Once this exploration ended, mixed queries are
+considered using function \textsc{MergeMixedQuerySet}.
+
+
 \sstitle{D-U-S: DFS, pattern-type unified, attribute separated}
-This algorithm is a variant of the D-U-C algorithm.
-%, which also employs DFS and constructs queries in a unified manner.
-However, it first discovers queries separately per attribute, before merging
-them to obtain the
-final result. That is, the algorithm runs the D-U-C algorithm
+This algorithm is a variant of D-U-C.
+It first discovers queries separately per attribute, before merging
+them. That is, the algorithm runs the D-U-C algorithm
 (\autoref{alg-bu-df}) per attribute, i.e., on a projection of the streams
-and of the event schema on one attribute. However, setting flag $b$ to
+and of the event schema on one attribute. With flag $b$ being
 $\False$, all queries supported by the database are collected, not only
-those that are descriptive.
+descriptive ones.
+
 Finally, queries discovered per attribute are merged.
+
+
 \begin{figure}[t]
 	\removelatexerror
 	\begin{algorithm}[H]
@@ -767,10 +864,12 @@ Finally, queries discovered per attribute are merged.
 	\hspace{3em} \,  Boolean flag $b\in \{\True,\False \}$ whether to output
 	only desc. queries.}
 	\KwOut{Set of descriptive queries $Q$, updated parent dictionary $P$.}
+
 	\BlankLine
 	$\mathit{Q \leftarrow \emptyset}$\;
 	$\Gamma_D \gets \{a \in \Gamma \mid \forall \ S \in D: \exists \
 	j\in\{1,...,|S|\}, i\in\{1,...,n\}: S[j].A_i = a\}$\;
+
 	$q \gets\langle\varepsilon\rangle$; $P(q) \gets
 	\langle\varepsilon\rangle$\;
 	\lForEach{$S\in D$}{
@@ -804,6 +903,7 @@ Finally, queries discovered per attribute are merged.
 	$O_{\mathit{pattern}}.\textsc{enqueue}(q)$\;
     \While{$\mathit{O_{pattern}}$ not empty}
     {
+
     	\label{alg6:while_pattern_start}
     	$\mathit{q \leftarrow O_{pattern}}.\textsc{dequeue}()$\;
         $\mathit{M,T \leftarrow}$
@@ -818,6 +918,7 @@ Finally, queries discovered per attribute are merged.
 				\lForEach{$q'\in C$}{
 					$O_{\mathit{pattern}}.\textsc{enqueue}(q')$}
 			}
+
         }
     	\label{alg6:while_pattern_end}
     }
@@ -829,25 +930,31 @@ Finally, queries discovered per attribute are merged.
     \lIf{$b=\True$}{
     $Q \leftarrow$
     \textsc{DescriptiveQueries}($Q,\Gamma_D,\mathcal{A},\mathcal{X}^<$)}
-    
+    %\Return $\mathit{Q,P}$\;}
+    %\lElse
     {\Return $\mathit{Q,P}$}
+    %\textbf{break};
 \end{algorithm}
 \vspace{-1em}
 \end{figure}
+
 \sstitle{B-S-S: BFS, pattern-type separated, attribute separated}
 This is a variant of B-S-C, adopting BFS and the separated
 discovery of type queries and pattern queries. Yet, it first considers
 queries per attribute, before merging them. As such, it
 adopts the strategy explained above for D-U-S, just with B-S-C as the base
 algorithm.
+
+
+
 \sstitle{Correctness, descriptiveness, completeness}
 The four presented algorithms solve the problem of event query
-discovery (\autoref{problem}). Given a stream database $D$, all four
-algorithms,
-D-U-C, B-S-C, D-U-S, and B-S-S, construct a set of queries $Q$ that is
-correct, descriptive, and complete, which
-is established as follows:
-\emph{Correctness:} Algorithm \textsc{Match} returns the match result
+discovery (\autoref{problem}). Given a stream database, all four
+algorithms, construct a set of queries $Q$ that is
+correct, descriptive, and complete:
+
+
+\textbf{Correctness:} Algorithm \textsc{Match} returns the match result
 $\True$, only if for each stream, at least one match is found for some
 binding of attribute values to the variables. Here, \textsc{MatchStream}
 exploits that the index of a match of a type query in a stream can only be
@@ -862,27 +969,34 @@ be part of the result set. For D-U-S and B-S-S, correctness follows from
 D-U-C and B-S-C returning only matching queries, and
 \textsc{MergeAttributeQueries} only adding matching merged queries to
 $Q_m$.
-\emph{Descriptiveness:} The result set ${Q}$ contains only descriptive
+
+\textbf{Descriptiveness:} The result set ${Q}$ contains only descriptive
 queries, as all four
 algorithms filter non-descriptive queries in a post-pro\-ces\-sing step
 (function \textsc{DescriptiveQueries} in \autoref{alg-bu-df} and
 \autoref{alg-bu-bf}).
-\emph{Completeness:} First, \textsc{ChildQueries} may inductively
+
+\textbf{Completeness:}
+\update{M7\\R3O4}{While we provide a comprehensive discussion of
+completeness properties in our technical report, we
+summarize the main arguments as follows:
+First, we note that \textsc{ChildQueries} may inductively
 generate any query according to our model starting with the empty query for
-a given schema and sequence of query variables (the number of variables is
-bound by half of the length of a shortest stream). That is, any placeholder
+a given schema and sequence of query variables.} Any placeholder
 of an existing query term may be replaced by any attribute value of the
-respective domain (supported by all streams) or a variable, and a new query
+respective domain or a variable, and a new query
 term may also be inserted for any of these values or variables.
-For D-U-C, completeness then follows from the fact that any possible child
+For D-U-C, completeness then follows as any possible child
 of a matching query, derived by inserting one additional attribute value or
 variable,
 is explored. For B-S-C, in addition to the generation of all child queries
-of matching type/pattern queries, \textsc{MergeMixedQuerySet}
+of matching queries, \textsc{MergeMixedQuerySet}
 and \textsc{MergeMixedQueries} generate any possible interleaving of query
 terms, as well as elements of query terms from these queries. For D-U-S and
 B-S-S, our argument rests further on the completeness of
 the merging of queries per attribute, which unfolds all combinations.
+
+
 \sstitle{Runtime complexity}
 We list the worst-case time complexity of our individual
 algorithms in \autoref{tab:complexities} (with \textsc{MergeMixedQuerySet}
@@ -905,3 +1019,6 @@ These complexity bounds justify our approach where, instead of trying
 to optimize an algorithm for the matching problem, we exploit
 the fact that the matching problem is solved repeatedly, for
 instances that are structurally similar (see \autoref{sec:matching}).
+
+
+

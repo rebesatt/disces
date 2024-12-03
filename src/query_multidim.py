@@ -4,6 +4,7 @@ import logging
 from copy import copy
 from typing import Pattern, Match
 from typing_extensions import Self
+from math import ceil
 import numpy as np
 from query import Query
 from sample_multidim import MultidimSample
@@ -25,7 +26,7 @@ QUERY_CLASS_LIST = [
 ]
 
 #Logger Configuration:
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+LOG_FORMAT = '| %(message)s'
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel('INFO')
 FILE_HANDLER = logging.StreamHandler()
@@ -33,7 +34,6 @@ FORMATTER = logging.Formatter(LOG_FORMAT)
 FILE_HANDLER.setFormatter(FORMATTER)
 LOGGER.addHandler(FILE_HANDLER)
 
-#TODO (Docu): Sample instance -> MultidimSample instance
 
 class MultidimQuery(Query):
     """
@@ -80,6 +80,8 @@ class MultidimQuery(Query):
                 attribute is marked by ";". The beginning of a variable is
                 marked by $, every unmarked attribute is a type. Note that
                 #; = #events x dimension and #events = #spaces - 1.
+
+            _query_list: List of event strings which represents the query string.
 
             _query_event_dimension: Integer which represents the max. number of
                 attributes per event.
@@ -161,6 +163,8 @@ class MultidimQuery(Query):
         """Set of types occuring in the _query_string. Default: set()"""
         self._query_attribute_typesets:dict = dict()
         """Dict storing the set of occuring types per attribute. Default: dict()"""
+        self._query_list:list = []
+        """List of event strings which represents the query string. Default: []"""
 
         if given_query_string is not None:
             assert isinstance(given_query_string, str)
@@ -270,8 +274,6 @@ class MultidimQuery(Query):
 
     def __str__(self) -> str:
         """
-            TODO:   Define a string statement if "print(query)" is called for a
-                    Query instance.
         """
         return self._query_string
 
@@ -321,6 +323,21 @@ class MultidimQuery(Query):
             if max_query_length != -1 and self._query_string_length > max_query_length:
                 return False
             
+            if self._query_matched_traces:
+                trace_list = self._query_matched_traces
+                for trace in trace_list:
+                    if trace < sample_size:
+                        if not sample._sample[trace]:
+                            self._query_matched_traces.remove(trace)
+                            if querystring.count('$')!=0 and dict_iter:
+                                dict_iter[querystring][trace]= -1
+                            elif dict_iter:
+                                dict_iter[querystring].pop(trace)
+                if len(self._query_matched_traces)/sample_size >= supp:
+                    return True
+                elif len(self._query_matched_traces) + sample_size - trace_list[-1] < ceil(supp*sample_size):
+                    return False
+
             matching = self._matching_smarter_multidim(sample=sample, supp =supp, dict_iter=dict_iter,
                                                            patternset=patternset,  parent_dict=parent_dict)
             if querystring.count('$')!=0:
@@ -334,15 +351,18 @@ class MultidimQuery(Query):
                         matched_traces.append(key)
                         matchingcount +=1
                 self._query_matched_traces = matched_traces
-
+            
+            if matching:
+                dict_iter[querystring] = matching
             matchsupport= matchingcount/sample_size
             if matchsupport< supp:
                 return False
             else:
-                for trace_index, value in matching.items():
-                    if querystring not in dict_iter:
-                        dict_iter[querystring]= {}
-                    dict_iter[querystring][trace_index]= value
+                # for trace_index, value in matching.items():
+                #     if querystring not in dict_iter:
+                #         dict_iter[querystring]= {}
+                #     dict_iter[querystring][trace_index]= value
+                
                 return True
 
     def match_trace_regex(self, trace:str, regex:Pattern) -> Match[str]|None:
@@ -381,6 +401,8 @@ class MultidimQuery(Query):
             Trace dictionary containing trace index as keys and a dictionary of groups with the matched string and span as values.
         """
         querystring = self._query_string
+        query_list = self.get_query_list()
+        trace_split_list = sample.get_sample_list_split()
         if querystring in parent_dict:
             parent = parent_dict[querystring]
         else:
@@ -388,18 +410,32 @@ class MultidimQuery(Query):
             parent.set_query_matchtest('smarter')
             parent_dict[querystring] = parent
         parentstring = parent._query_string
+        parent_list = parent.get_query_list()
         trace_matches={}
-        sample_size = len(sample._sample)
+        sample_size = sample._sample_size
         # self.set_pos_last_type_and_variable()
         # last_positions = self._pos_last_type_and_variable
-
+        
+        if not self._query_matched_traces:
+            traces_to_match = list(range(sample_size))
+            matched_traces = []
+        else:
+            matched_traces = self._query_matched_traces
+            traces_to_match = list(range(matched_traces[-1]+1, sample_size))
+            for trace in self._query_matched_traces:
+                if trace in dict_iter[querystring]:
+                    trace_matches[trace]= dict_iter[querystring][trace]
 
         if querystring.count('$x') == 0:
-            num_trace_match = sample_size
-            for trace_idx, trace in enumerate(sample._sample):
+            num_trace_match = len(traces_to_match) + len(matched_traces)
+            # for trace_idx, trace in enumerate(sample._sample):
+            for trace_idx in traces_to_match:
                 if num_trace_match/sample_size < supp:
                     break
-                idx = self._smart_trace_match_multidim(querystring ,trace, trace_idx, dict_iter)
+                if not sample._sample[trace_idx]:
+                    idx = -1
+                else:
+                    idx = self._smart_trace_match_multidim(querystring ,trace_split_list[trace_idx], trace_idx, dict_iter, query_list)
                 if trace_idx not in trace_matches:
                     trace_matches[trace_idx]= {}
                 trace_matches[trace_idx]= idx
@@ -408,11 +444,10 @@ class MultidimQuery(Query):
 
             return trace_matches
 
-        
         var_count = querystring.count('$x')
         cur_count = 0
         var_int = -1
-        for event in querystring.split():
+        for event in query_list:
             for dom, letter in enumerate(event.split(';')[:-1]):
                 if '$x' in letter:
                     if int(letter[2:]) > var_int:
@@ -428,36 +463,47 @@ class MultidimQuery(Query):
             else:
                 if parentstring in dict_iter:
                     parent_traces= list(dict_iter[parentstring].keys())
+                    for stream in traces_to_match:
+                        if stream not in parent_traces:
+                            parent_match = parent._matching_smarter_multidim(sample, supp, dict_iter, patternset, parent_dict)
+                            dict_iter[parentstring] = parent_match
+                            parent_traces= list(parent_match.keys())
+                            break
                 else:
                     parent_match = parent._matching_smarter_multidim(sample,supp,  dict_iter, patternset, parent_dict)
                     dict_iter[parentstring] = parent_match
                     parent_traces= list(parent_match.keys())
 
-            trace_list= parent_traces + list(range(parent_traces[-1]+1,sample_size))
-            num_trace_match = len(trace_list)
+            trace_list= [trace for trace in traces_to_match if trace in parent_traces]
+            num_trace_match = len(trace_list) + len(matched_traces)
             for trace in trace_list:
                 if num_trace_match/sample_size < supp:
                     break
-                for letter in patternset[var_domain]:
-                    letter_querystring = querystring.replace('$x0', letter)
-                    if letter_querystring in dict_iter:
-                        if trace in dict_iter[letter_querystring]:
-                            if dict_iter[letter_querystring][trace] !=-1:
-                                if trace not in trace_matches:
-                                    trace_matches[trace]= {}
-                                trace_matches[trace][(letter,)]= dict_iter[letter_querystring][trace]
+                if not sample._sample[trace]:
+                    num_trace_match-=1
+                    continue
+                if var_domain in patternset:
+                    for letter in patternset[var_domain][trace]:
+                        letter_querystring = querystring.replace('$x0', letter)
+                        if letter_querystring in dict_iter:
+                            if trace in dict_iter[letter_querystring]:
+                                if sample._sample[trace]:
+                                    if dict_iter[letter_querystring][trace] !=-1:
+                                        if trace not in trace_matches:
+                                            trace_matches[trace]= {}
+                                        trace_matches[trace][(letter,)]= dict_iter[letter_querystring][trace]
+                            else:
+                                idx= self._smart_trace_match_multidim(letter_querystring, trace_split_list[trace], trace, dict_iter)
+                                if idx != -1:
+                                    if trace not in trace_matches:
+                                        trace_matches[trace]= {}
+                                    trace_matches[trace][(letter,)]= idx
                         else:
-                            idx= self._smart_trace_match_multidim(letter_querystring, sample._sample[trace], trace, dict_iter)
+                            idx= self._smart_trace_match_multidim(letter_querystring, trace_split_list[trace], trace, dict_iter)
                             if idx != -1:
                                 if trace not in trace_matches:
                                     trace_matches[trace]= {}
                                 trace_matches[trace][(letter,)]= idx
-                    else:
-                        idx= self._smart_trace_match_multidim(letter_querystring, sample._sample[trace], trace, dict_iter)
-                        if idx != -1:
-                            if trace not in trace_matches:
-                                trace_matches[trace]= {}
-                            trace_matches[trace][(letter,)]= idx
 
                 if trace not in trace_matches:
                     num_trace_match-=1
@@ -467,31 +513,46 @@ class MultidimQuery(Query):
             #parent = MultidimQuery()
             #parent.set_query_string(parentstring, recalculate_attributes=False)
             parent_set = set()
-            for event in parentstring.split(' '):
+            for event in parent_list:
                 for symbol in event.split(';'):
                     if symbol.count('$') !=0:
                         parent_set.add(symbol[1:])
             parent_variables=sorted(list(parent_set))
             if parentstring in dict_iter:
                 parent_traces= list(dict_iter[parentstring].keys())
+                for stream in traces_to_match:
+                    if stream not in parent_traces:
+                        parent_match = parent._matching_smarter_multidim(sample, supp, dict_iter, patternset, parent_dict)
+                        dict_iter[parentstring] = parent_match
+                        parent_traces= list(parent_match.keys())
+                        break
+                
             else:
                 parent_match = parent._matching_smarter_multidim(sample, supp, dict_iter, patternset, parent_dict)
                 dict_iter[parentstring] = parent_match
                 parent_traces= list(parent_match.keys())
-            trace_list= parent_traces
-            num_trace_match = len(trace_list)
+            
+            # trace_list= [trace for trace in traces_to_match if trace in parent_traces]
+            # trace_list= [trace for trace in traces_to_match if trace in parent_traces]
+            trace_list = set(traces_to_match) & set(parent_traces)
+            num_trace_match = len(trace_list) + len(matched_traces)
+            # trace_list= parent_traces
+            # num_trace_match = len(trace_list)
             for trace in trace_list:
                 if num_trace_match/sample_size < supp:
                     break
+                if not sample._sample[trace]:
+                    num_trace_match-=1
+                    continue
                 group_list= list(dict_iter[parentstring][trace].keys())
                 for group in group_list:
                     letter_querystring=querystring
                     assert len(group) == len(parent_variables)
                     for val, letter in enumerate(group):
                         letter_querystring = letter_querystring.replace(f'${parent_variables[val]}', letter)
-                    if letter_querystring.count('$')>0:
+                    if letter_querystring.count('$')>0 and var_domain in patternset:
 
-                        for letter in patternset[var_domain]:
+                        for letter in patternset[var_domain][trace]:
                             letter_querystring2 = letter_querystring.replace(f'$x{len(group)}', letter)
                             if letter_querystring2 in dict_iter:
                                 if trace in dict_iter[letter_querystring2]:
@@ -501,14 +562,14 @@ class MultidimQuery(Query):
                                         trace_matches[trace][group + (letter,)]= dict_iter[letter_querystring2][trace]
 
                                 else:
-                                    idx = self._smart_trace_match_multidim(letter_querystring2, sample._sample[trace], trace, dict_iter)
+                                    idx = self._smart_trace_match_multidim(letter_querystring2, trace_split_list[trace], trace, dict_iter)
                                     if idx != -1:
                                         if trace not in trace_matches:
                                             trace_matches[trace]= {}
                                         trace_matches[trace][group + (letter,)]= idx
 
                             else:
-                                idx = self._smart_trace_match_multidim(letter_querystring2, sample._sample[trace], trace, dict_iter)
+                                idx = self._smart_trace_match_multidim(letter_querystring2, trace_split_list[trace], trace, dict_iter)
                                 if idx != -1:
                                     if trace not in trace_matches:
                                         trace_matches[trace]= {}
@@ -517,18 +578,18 @@ class MultidimQuery(Query):
                     else:
                         if letter_querystring in dict_iter:
                             if trace in dict_iter[letter_querystring]:
-                                if dict_iter[letter_querystring][trace] !=-1:
+                                if dict_iter[letter_querystring][trace] !=-1 and sample._sample[trace]:
                                     if trace not in trace_matches:
                                         trace_matches[trace]= {}
                                     trace_matches[trace][group]= dict_iter[letter_querystring][trace]
                             else:
-                                idx= self._smart_trace_match_multidim(letter_querystring, sample._sample[trace], trace, dict_iter)
+                                idx= self._smart_trace_match_multidim(letter_querystring, trace_split_list[trace], trace, dict_iter)
                                 if idx != -1:
                                     if trace not in trace_matches:
                                         trace_matches[trace]= {}
                                     trace_matches[trace][group]= idx
                         else:
-                            idx = self._smart_trace_match_multidim(letter_querystring, sample._sample[trace], trace, dict_iter)
+                            idx = self._smart_trace_match_multidim(letter_querystring, trace_split_list[trace], trace, dict_iter)
                             if idx != -1:
                                 if trace not in trace_matches:
                                     trace_matches[trace]= {}
@@ -538,13 +599,13 @@ class MultidimQuery(Query):
                     num_trace_match-=1
             return trace_matches
 
-    def _smart_trace_match_multidim(self, querystring, trace, trace_idx, dict_iter):
+    def _smart_trace_match_multidim(self, querystring, trace_split, trace_idx, dict_iter, query_split=None):
         """Given a trace and a querystring the matching position is calculated and in case of a match
         the dict_iter is updated.
 
         Args:
             querystring (String): querystring for query
-            trace (String): trace from the sample
+            trace (List): trace list from the sample
             trace_idx (int): index of the given trace
             dict_iter (dictionary): nested dictionary for each query and trace the last matching position is value.
 
@@ -552,69 +613,103 @@ class MultidimQuery(Query):
             Last matching position as integer. -1 if there
             is no match.
         """
-        domain_cnt= querystring.split()[0].count(';')
+        if not query_split:
+            query_split = querystring.split()
+        # trace_split = trace.split()
+        domain_cnt= query_split[0].count(';')
         gen_event= ';' * domain_cnt
-        last_event= querystring.split()[-1]
+        last_event= query_split[-1]
         non_empty_domains = self.non_empty_domain(last_event)
-        parentstring = ' '.join(querystring.split()[:-1])
+        parentstring = ' '.join(query_split[:-1])
+        last_event_split = last_event.split(';')
         if non_empty_domains:
             last_non_empty = non_empty_domains[-1]
         if not parentstring:
             if len(non_empty_domains) <=1:
                 parentstring = gen_event
             else:
-                parentstring= ';'.join(last_event.split(';')[:last_non_empty])+ ';' + ';'.join(last_event.split(';')[last_non_empty+1:]) +';'
+                parentstring= ';'.join(last_event_split[:last_non_empty])+ ';' + ';'.join(last_event_split[last_non_empty+1:]) +';'
 
         else:
             if len(non_empty_domains)> 1:
-                parentstring = parentstring + ' ' + ';'.join(last_event.split(';')[:last_non_empty])+ ';' + ';'.join(last_event.split(';')[last_non_empty+1:]) +';'
+                parentstring = parentstring + ' ' + ';'.join(last_event_split[:last_non_empty])+ ';' + ';'.join(last_event_split[last_non_empty+1:]) +';'
         if querystring not in dict_iter:
             dict_iter[querystring]= {}
         if querystring == gen_event:
             dict_iter[querystring][trace_idx]=0
             return 0
         if parentstring not in dict_iter:
-            idx = self._smart_trace_match_multidim(parentstring,trace, trace_idx, dict_iter)
+            idx = self._smart_trace_match_multidim(parentstring,trace_split, trace_idx, dict_iter)
         if trace_idx in dict_iter[parentstring]:
             parent_end_pos = dict_iter[parentstring][trace_idx]
         else:
-            idx= self._smart_trace_match_multidim(parentstring, trace, trace_idx, dict_iter)
+            idx= self._smart_trace_match_multidim(parentstring, trace_split, trace_idx, dict_iter)
             parent_end_pos = dict_iter[parentstring][trace_idx]
         if parentstring == gen_event:
-            domain_trace = " ".join([event.split(';')[last_non_empty] for event in trace.split()])
-            domain_type= last_event.split(';')[last_non_empty]
-            domain_trace = domain_trace.replace('  ', ' ; ')
-            if domain_type in domain_trace.split():
-                end_pos = domain_trace.split().index(domain_type)
+            # domain_trace = " ".join([event.split(';')[last_non_empty] for event in trace_split])
+            domain_trace_split = [event.split(';')[last_non_empty] for event in trace_split]
+            domain_type = last_event_split[last_non_empty]
+            # new_domain_trace = domain_trace.replace('  ', ' ; ')
+            # while new_domain_trace!= domain_trace:
+            #     domain_trace = new_domain_trace
+            #     new_domain_trace = domain_trace.replace('  ', ' ; ')
+            # domain_trace = new_domain_trace
+            # if len(domain_trace.lstrip()) != len(domain_trace):
+            #     domain_trace = '; ' + domain_trace
+            # if len(domain_trace.rstrip()) != len(domain_trace):
+            #     domain_trace = domain_trace + ' ;'
+            # domain_trace_split = domain_trace.split()
+            if domain_type in domain_trace_split:
+                end_pos = domain_trace_split.index(domain_type)
             else:
                 end_pos = -1
             dict_iter[querystring][trace_idx]= end_pos
             return end_pos
         if parent_end_pos !=-1:
             if len(non_empty_domains) == 1:
-                domain_trace = " ".join([event.split(';')[last_non_empty] for event in trace.split()])
-                domain_type= last_event.split(';')[last_non_empty]
+                # domain_trace = " ".join([event.split(';')[last_non_empty] for event in trace_split])
+                domain_trace_split = [event.split(';')[last_non_empty] for event in trace_split]
+                domain_type= last_event_split[last_non_empty]
 
-                domain_trace = domain_trace.replace('  ', ' ; ')
-                domain_trace_list = domain_trace.split()[parent_end_pos+1:]
+                # new_domain_trace = domain_trace.replace('  ', ' ; ')
+                # while new_domain_trace!= domain_trace:
+                #     domain_trace = new_domain_trace
+                #     new_domain_trace = domain_trace.replace('  ', ' ; ')
+                # domain_trace = new_domain_trace
+                # if len(domain_trace.lstrip()) != len(domain_trace):
+                #     domain_trace = '; ' + domain_trace
+                # if len(domain_trace.rstrip()) != len(domain_trace):
+                #     domain_trace = domain_trace + ' ;'
+                # domain_trace_split = domain_trace.split()
+                domain_trace_list = domain_trace_split[parent_end_pos+1:]
 
                 if domain_type and domain_type in domain_trace_list:
                     idx = domain_trace_list.index(domain_type)
                 else:
                     idx = -1
             else:
-                if trace.split()[parent_end_pos].split(';')[last_non_empty] and trace.split()[parent_end_pos].split(';')[last_non_empty] == last_event.split(';')[last_non_empty]:
+                if trace_split[parent_end_pos].split(';')[last_non_empty] and trace_split[parent_end_pos].split(';')[last_non_empty] == last_event_split[last_non_empty]:
                     end_pos = parent_end_pos
                     dict_iter[querystring][trace_idx]= end_pos
                     return end_pos
                 else:
-                    remaining_trace = ' '.join(trace.split()[parent_end_pos+1:])
-
+                    remaining_trace = ' '.join(trace_split[parent_end_pos+1:])
+                    remaining_trace_split = remaining_trace.split()
                     for i, dom in enumerate(non_empty_domains):
-                        domain_trace = " ".join([event.split(';')[dom] for event in remaining_trace.split()])
-                        domain_trace = domain_trace.replace('  ', ' ; ')
-                        domain_type= last_event.split(';')[dom]
-                        domain_trace_list = domain_trace.split()
+                        # domain_trace = " ".join([event.split(';')[dom] for event in remaining_trace_split])
+                        domain_trace_split = [event.split(';')[dom] for event in remaining_trace_split]
+                        # new_domain_trace = domain_trace.replace('  ', ' ; ')
+                        # while new_domain_trace!= domain_trace:
+                        #     domain_trace = new_domain_trace
+                        #     new_domain_trace = domain_trace.replace('  ', ' ; ')
+                        # domain_trace = new_domain_trace
+                        # if len(domain_trace.lstrip()) != len(domain_trace):
+                        #     domain_trace = '; ' + domain_trace
+                        # if len(domain_trace.rstrip()) != len(domain_trace):
+                        #     domain_trace = domain_trace + ' ;'
+                        # domain_trace_split = domain_trace.split()
+                        domain_type= last_event_split[dom]
+                        domain_trace_list = domain_trace_split
                         if domain_type in domain_trace_list:
                             idx_list = {i for i, ltr in enumerate(domain_trace_list) if ltr == domain_type}
                         else:
@@ -1254,9 +1349,14 @@ class MultidimQuery(Query):
             parent (MultidimQuery): an instance of MultidimQuery
         """
         querystring= self._query_string
+        query_list = self.get_query_list()
         if not querystring:
             return MultidimQuery()
-
+        #self.set_pos_last_type_and_variable()
+        # pos_last_type_and_variable= self._pos_last_type_and_variable
+        # pos_last_type= pos_last_type_and_variable[0]
+        # pos_first_var= pos_last_type_and_variable[1]
+        # pos_last_var = pos_last_type_and_variable[2]
 
 
         
@@ -1264,7 +1364,7 @@ class MultidimQuery(Query):
         pos_first_var = -1
         pos_last_var = -1
         pos_last_type = -1
-        for pos, event in enumerate(querystring.split()):
+        for pos, event in enumerate(query_list):
             for dom, letter in enumerate(event.split(';')[:-1]):
                 if '$x' in letter:
                     if int(letter[2:]) > var_int:
@@ -1278,7 +1378,7 @@ class MultidimQuery(Query):
 
         var = False
         letter = False
-        domain_cnt = querystring.split()[0].count(';')
+        domain_cnt = query_list[0].count(';')
         gen_event = ';' *domain_cnt
         if pos_last_type > pos_first_var:
             last_position = pos_last_type
@@ -1289,7 +1389,7 @@ class MultidimQuery(Query):
             var = True
         else:
             last_position = pos_last_type
-            current_event = querystring.split()[last_position]
+            current_event = query_list[last_position]
             filled_domains = self.non_empty_domain(current_event)
             last_domain =filled_domains[-1]
             last_type = current_event.split(';')[last_domain]
@@ -1299,7 +1399,7 @@ class MultidimQuery(Query):
             else:
                 letter = True
 
-        current_event = querystring.split()[last_position]
+        current_event = query_list[last_position]
         filled_domains = self.non_empty_domain(current_event)
         if var:
             var_numb = -1
@@ -1321,13 +1421,13 @@ class MultidimQuery(Query):
             current_event = gen_event
 
         if current_event != gen_event:
-            parentstring = " ".join(querystring.split()[:last_position]) + " "+ current_event + " " + " ".join(querystring.split()[last_position+1:])
+            parentstring = " ".join(query_list[:last_position]) + " "+ current_event + " " + " ".join(query_list[last_position+1:])
         else:
-            parentstring = " ".join(querystring.split()[:last_position]) + " "+ " ".join(querystring.split()[last_position+1:])
+            parentstring = " ".join(query_list[:last_position]) + " "+ " ".join(query_list[last_position+1:])
         if last_type.count('$') !=0:
             if parentstring.count(last_type) == 1:
                 last_position = pos_first_var
-                current_event = querystring.split()[last_position]
+                current_event = query_list[last_position]
                 current_event= current_event.replace(last_type, '')
 
                 if current_event != gen_event:
@@ -1353,7 +1453,8 @@ class MultidimQuery(Query):
             List of domain-numbers that are not empty.
         """
         #last_event = querystring.split()[-1]
-        non_empty_domains= [idx for idx, i in enumerate(last_event.split(';')) if i]
+        last_event_split = last_event.split(';')
+        non_empty_domains= [idx for idx, i in enumerate(last_event_split) if i]
 
         return non_empty_domains
 
@@ -1386,11 +1487,11 @@ class MultidimQuery(Query):
                 event_dictionary = {}
             event_dictionary[querystring]= {}
             dim_querystring = querystring.replace(';', '')
-            symbol_counts = {symbol: dim_querystring.count(symbol) for symbol in set(dim_querystring.split())}
-            domain = len(querystring) - len(querystring.lstrip(';'))
-            # querystring_split = querystring.split()
             dim_querystring_split = dim_querystring.split()
+            symbol_counts = {symbol: dim_querystring.count(symbol) for symbol in set(dim_querystring_split)}
+            domain = len(querystring) - len(querystring.lstrip(';'))
             for trace_idx in trace_list:
+                trace_matches = True
                 cur_trace = sample_set[trace_idx]
                 cur_trace_split = cur_trace.split()
                 
@@ -1431,30 +1532,36 @@ class MultidimQuery(Query):
                                     new_positions= sorted(pos_list)
                                     
                                 else:
-                                    # dom_querystring =' '.join([event.split(';')[domain] for event in querystring.split()])
-                                    # var_start= dom_querystring.split().index(symbol)
+
                                     var_start= dim_querystring_split.index(symbol)
-                                    trace_event= cur_trace_split[instance[var_start]]
-                                    letter = trace_event.split(';')[domain]
-                                    new_positions = event_db[domain][letter][trace_idx]
+                                    if var_start < len(instance):
+                                        trace_event= cur_trace_split[instance[var_start]]
+                                        letter = trace_event.split(';')[domain]
+                                        new_positions = event_db[domain][letter][trace_idx]
+                                    else:
+                                        trace_matches = False
+                                        event_dictionary[querystring].pop(trace_idx)
+                                        break
+
                             if not first_domain:
                                 for new_pos in new_positions[::-1]:
                                     if new_pos > last_position:
                                         instances.append(instance+ [new_pos])
-                                        assert len({len(inst) for inst in instances}) == 1
+                                        # assert len({len(inst) for inst in instances}) == 1
                                     else:
                                         break
                             else:
                                 if last_position in new_positions:
                                     instances.append(instance)
-                                    assert len({len(inst) for inst in instances}) == 1
+                                    # assert len({len(inst) for inst in instances}) == 1
+                        if not trace_matches:
+                            break
                         first_domain = True
 
 
                         if instances:
                             event_dictionary[querystring][trace_idx] = instances
         return event_dictionary # type: ignore
-
 
 
     def event_db_positions(self, event_db, query_domains, trace_idx, last_position=-1):
@@ -2013,6 +2120,19 @@ class MultidimQuery(Query):
                     missing_attributes_count = missing_attributes_count+1
             pos = pos+1
         return missing_attributes_count
+    
+    def get_query_list(self) -> list:
+        """
+            Returns a list of the query string.
+
+            Returns:
+                List of strings.
+        """
+        if not self._query_string:
+            return []
+        if not self._query_list:
+            self._query_list = self._query_string.split()
+        return self._query_list
 
     # until here: in Class <MultidimQuery>
 ###############################################################################
@@ -2034,24 +2154,25 @@ def _pos_last_type_and_variable(querystring:str) -> np.ndarray:
         return np.array([-1,-1,-1])
 
     variables_set = set()
-    for event in querystring.split(' '):
+    query_split = querystring.split()
+    for event in query_split:
         for symbol in event.split(';'):
             if symbol.count('$') !=0:
                 variables_set.add(symbol[1:])
     variables=sorted(list(variables_set))
-
-    querylength = len(querystring.split(' '))
+    
+    querylength = len(query_split)
     if querystring.count(';') == 0:
         if querystring.count('$x') !=0:
-            pos_last_var= querylength - 1 - querystring.split()[::-1].index('$'+variables[-1])
-            pos_first_var= querystring.split().index('$x'+str(variables[-1][1]))
+            pos_last_var= querylength - 1 - query_split[::-1].index('$'+variables[-1])
+            pos_first_var= query_split.index('$x'+str(variables[-1][1]))
 
-            if len(querystring.split()) == querystring.count('$x'):
+            if len(query_split) == querystring.count('$x'):
                 pos_last_type=-1
                 return np.array([-1, pos_first_var, pos_last_var])
             else:
                 position=-1
-                while querystring.split()[position].count('$x')!=0:
+                while query_split[position].count('$x')!=0:
                     position-=1
 
                 pos_last_type= querylength + position
@@ -2070,14 +2191,14 @@ def _pos_last_type_and_variable(querystring:str) -> np.ndarray:
         string_pos2= querystring.rfind(last_var)
         pos_last_var= querystring[:string_pos2].count(' ')
 
-        if len(querystring.split()) == querystring.count('$x'):
+        if len(query_split) == querystring.count('$x'):
             pos_last_type=-1
             return np.array([-1, pos_first_var, pos_last_var])
         else:
             position=-1
             no_letter = True
             while no_letter and position >= -querylength:
-                for event in querystring.split()[position].split(';')[:-1]:
+                for event in query_split[position].split(';')[:-1]:
                     if event.count('$') == 0 and event:
                         no_letter = False
                         break

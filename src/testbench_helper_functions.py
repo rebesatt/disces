@@ -16,6 +16,7 @@ from statistics import mean
 from math import isnan
 from copy import deepcopy
 import func_timeout
+import cProfile
 
 from generator import SampleGenerator
 from generator_multidim import MultidimSampleGenerator
@@ -25,7 +26,7 @@ from discovery_il_miner import il_miner
 from discovery_bu_pts_multidim import discovery_bu_pts_multidim
 
 #Logger Configuration:
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+LOG_FORMAT = '| %(message)s'
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel('INFO')
 FILE_HANDLER = logging.StreamHandler()
@@ -168,6 +169,134 @@ def _dataset_to_sample(path_to_file:str, cutoff=-1, trace_len=-1, multidim:bool=
     _write_sample(sample, sample_filename)
     LOGGER.info('_dataset_to_sample - Finished')
 
+def _generate_experiments(convert_datasets:bool=False, path_to_file:str="",params_sample_size:list|None=None, params_trace_length:list|None=None, params_type_length:int=-1, params_dimension:list|None=None) -> None:
+    """
+        Generates & writes samples with different size, trace- and typelength.
+
+        Uses the SampleGenerator. Creates "done.txt" in the end. Creates a
+        *.seq.mpack and a *.done.txt file for each experiment. Parameters can
+        be extracted from the filename using FILENAME_REGEXP.
+
+        Args:
+            convert_datasets: Boolean which indicates whether datasets stored
+                in 'datasets/' should be converted into samples. If set to True
+                no synthetic samples are generated. Datasets should be stored
+                as '*txt.gz'.
+
+            path_to_file: String containing the path to a specific dataset
+                which should be converted to a sample. Dataset should be stored
+                as '*txt.gz'.
+
+            params_sample_size: List of integer which represents the number of
+                traces which has to be generated per sample.
+
+            params_trace_length: List of integer tuples. The first element of
+                each tuple defines the minimum trace length, the second defines
+                the maximum trace length of each trace of the current sample.
+
+            params_type_length: Integer which can be used to define the length
+                of each type. Default -1 means that the length will be
+                calculated depending on the maximal trace length and the size
+                of the sample.
+
+            params_dimension: List of integers representing the event dimension
+                for each (multidimensional) sample. Default None implies that
+                only onedimensional samples will be generated.
+    """
+    LOGGER.debug('_generate_experiments - Starting')
+
+    if not os.path.exists('samples'):
+        os.mkdir('samples')
+
+    if os.path.exists('datasets') and convert_datasets is True:
+        if len(path_to_file)>0 and os.path.exists(path_to_file):
+            _dataset_to_sample(path_to_file)
+        else:
+            entries = os.listdir("datasets/")
+            for entry in entries:
+                if entry.split(".")[-1]=='gz':
+                    entry_filename = "datasets/"+str(entry)
+                    _dataset_to_sample(entry_filename)
+        return
+
+    multidim = True
+    if params_sample_size is None:
+        params_sample_size = [50,100,150,200,250,300,350,400,450,500]
+    if params_trace_length is None:
+        params_trace_length = [(10,50),(50,100),(100,150),(150,200)]
+    if params_dimension is None:
+        params_dimension = [1]
+        multidim = False
+
+    log_params_sample_size = '_generate_experiments - params sample sizes: '+" ".join(str(params_sample_size))
+    log_params_trace_length = '_generate_experiments - params trace length: '+" ".join(str(params_trace_length))
+    LOGGER.debug(log_params_sample_size)
+    LOGGER.debug(log_params_trace_length)
+
+    for sample_size, trace_length, event_dimension in [  (sample_size, trace_length, event_dimension)
+                                        for sample_size in params_sample_size
+                                        for trace_length in params_trace_length
+                                        for event_dimension in params_dimension]:
+        filename_base_random = f"{sample_size}.{str(trace_length[0])}.{str(trace_length[1])}.{str(params_type_length)}.{str(event_dimension)}.{'random'}"
+        filename_base_fragmentation_gauss = f"{sample_size}.{str(trace_length[0])}.{str(trace_length[1])}.{str(params_type_length)}.{str(event_dimension)}.{'fragmentation-gauss'}"
+        filename_base_fragmentation_quartered = f"{sample_size}.{str(trace_length[0])}.{str(trace_length[1])}.{str(params_type_length)}.{str(event_dimension)}.{'fragmentation-quartered'}"
+
+        filename_random = filename_base_random + ".seq"
+        filename_fragmentation_gauss = filename_base_fragmentation_gauss + ".seq"
+        filename_fragmentation_quartered = filename_base_fragmentation_quartered + ".seq"
+
+        filename_random_done = filename_base_random + ".done.txt"
+        filename_fragmentation_gauss_done = filename_base_fragmentation_gauss + ".done.txt"
+        filename_fragmentation_quartered_done = filename_base_fragmentation_quartered + ".done.txt"
+
+        if os.path.isfile(filename_base_random + ".done.txt") and os.path.isfile(filename_base_fragmentation_gauss + ".done.txt"):
+            continue
+
+        if multidim is True:
+            generator = MultidimSampleGenerator()
+            sample_random = generator.generate_random_sample(sample_size=sample_size, min_trace_length=trace_length[0], max_trace_length=trace_length[1], type_length=params_type_length, event_dimension=event_dimension)
+            sample_fragmentation_gauss = generator.generate_fragmentation_gauss_sample(sample_size=sample_size, min_trace_length=trace_length[0], max_trace_length=trace_length[1], type_length=params_type_length, event_dimension=event_dimension)
+            sample_fragmentation_quartered = generator.generate_fragmentation_quartered_sample(sample_size=sample_size, min_trace_length=trace_length[0], max_trace_length=trace_length[1], type_length=params_type_length, event_dimension=event_dimension)
+        else:
+            generator = SampleGenerator()
+            sample_random = generator.generate_random_sample(sample_size=sample_size, min_trace_length=trace_length[0], max_trace_length=trace_length[1], type_length=params_type_length)
+            sample_fragmentation_gauss = generator.generate_fragmentation_gauss_sample(sample_size=sample_size, min_trace_length=trace_length[0], max_trace_length=trace_length[1], type_length=params_type_length)
+            sample_fragmentation_quartered = generator.generate_fragmentation_quartered_sample(sample_size=sample_size, min_trace_length=trace_length[0], max_trace_length=trace_length[1], type_length=params_type_length)
+
+        # check if filename is parsable
+        parsed_params = re.match(FILENAME_REGEXP,filename_random)
+        assert parsed_params is not None
+        assert int(parsed_params.group('sample_size'))==sample_size
+        assert int(parsed_params.group('min_trace_length'))==trace_length[0]
+        assert int(parsed_params.group('max_trace_length'))==trace_length[1]
+        assert int(parsed_params.group('type_length'))==params_type_length
+        assert int(parsed_params.group('event_dimension'))==event_dimension
+        parsed_params = re.match(FILENAME_REGEXP,filename_fragmentation_gauss)
+        assert parsed_params is not None
+        assert int(parsed_params.group('sample_size'))==sample_size
+        assert int(parsed_params.group('min_trace_length'))==trace_length[0]
+        assert int(parsed_params.group('max_trace_length'))==trace_length[1]
+        assert int(parsed_params.group('type_length'))==params_type_length
+        assert int(parsed_params.group('event_dimension'))==event_dimension
+        parsed_params = re.match(FILENAME_REGEXP,filename_fragmentation_quartered)
+        assert parsed_params is not None
+        assert int(parsed_params.group('sample_size'))==sample_size
+        assert int(parsed_params.group('min_trace_length'))==trace_length[0]
+        assert int(parsed_params.group('max_trace_length'))==trace_length[1]
+        assert int(parsed_params.group('type_length'))==params_type_length
+        assert int(parsed_params.group('event_dimension'))==event_dimension
+
+        _write_sample(sample_random._sample, filename_random)
+        _write_sample(sample_fragmentation_gauss._sample, filename_fragmentation_gauss)
+        _write_sample(sample_fragmentation_quartered._sample, filename_fragmentation_quartered)
+        open('samples/' + filename_random_done, 'a', encoding='utf-8').close()
+        open('samples/' + filename_fragmentation_gauss_done, 'a', encoding='utf-8').close()
+        open('samples/' + filename_fragmentation_quartered_done, 'a', encoding='utf-8').close()
+
+    done_file = open('samples/done.txt', 'w', encoding='utf-8')
+    done_file.write("Generate experiment done!")
+    done_file.close()
+    LOGGER.debug('_generate_experiments - Finished')
 
 def non_matching_sample(sample_size:int=2, trace_length:int = 20, domain_size:int = 3) ->list:
     """Returns a sample list with non-matching events.
@@ -220,17 +349,17 @@ def match_algos(sample_list: list, results: list, iterations: int, j: int|str, m
     alphabet = set()
     gen_event= ';' * domain_cnt
     gen_event_list = [i for i in gen_event]
-    patternset ={}
+    # patternset ={}
     for domain, dom_vsdb in att_vsdb.items():
-        patternset[domain] = set()
+        # patternset[domain] = set()
         for key, value in dom_vsdb.items():
             new_key = ''.join(gen_event_list[:domain] + [key] + gen_event_list[domain:])
             vsdb[new_key] = value
-            if not only_types:
-                for item in value.keys():
-                    if len(value[item]) >= 2:
-                        patternset[domain].add(key)
-                        break
+            # if not only_types:
+            #     for item in value.keys():
+            #         if len(value[item]) >= 2:
+            #             patternset[domain].add(key)
+            #             break
 
     pattern_list = [0]*sample_size
     for pos_dict in vsdb.values():
@@ -265,29 +394,31 @@ def match_algos(sample_list: list, results: list, iterations: int, j: int|str, m
         domain_type_sums = sum(sum_type_dom_list)
         sum_type_list.append(domain_type_sums)
 
-        for domain in att_vsdb.keys():
-            for _, value in att_vsdb[domain].items():
-                if list(value.keys())[0] == idx:
-                    trace_pattern = max(trace_pattern, len(value[idx]))
-                    if len(value[idx]) >= 2:
-                        pattern_cnt +=1
-        len_pattern.append(trace_pattern)
-        patterns.append(pattern_cnt)
-        trace_pattern = 0
-        pattern_cnt = 0
+        # for domain in att_vsdb.keys():
+        #     for _, value in att_vsdb[domain].items():
+        #         if list(value.keys())[0] == idx:
+        #             trace_pattern = max(trace_pattern, len(value[idx]))
+        #             if len(value[idx]) >= 2:
+        #                 pattern_cnt +=1
+        # len_pattern.append(trace_pattern)
+        # patterns.append(pattern_cnt)
+        # trace_pattern = 0
+        # pattern_cnt = 0
         # max_type_occurence =[stats['sample type distribution ordered'][-1][1] for stats in dim_stats.values()]
-        trace_max_type_occurence =[stats['sample type distribution ordered'][-1][1] for stats in dim_trace_stats.values()]
-    
+        # trace_max_type_occurence =[stats['sample type distribution ordered'][-1][1] for stats in dim_trace_stats.values()]
+        # trace_occurences = {key: set() for key in range(sample_size)}
+        # for letter, letter_dict in dom_vsdb.items():
+
     max_sum_pattern = min(sum_pattern_list, default=0)
     max_sum_type = max(sum_type_list, default=0)
-    min_pattern_len = min(len_pattern)
+    # min_pattern_len = min(len_pattern)
 
     for matching in discovery:
         # LOGGER.info('Started %s', matching)
         start= time.time()
         if matching == 'uni':
             copy_sample = deepcopy(sample)
-            args = (copy_sample, 1.0, 'smarter', False, max_query_length, only_types)
+            args = (copy_sample, supp, 'smarter', False, max_query_length, only_types)
             result_dict = runFunction(bu_discovery_multidim, timeout, args, {})
             # result_dict = bu_discovery_multidim(copy_sample, 1.0, 'smarter', domain_seperated=False, 
             #                                     max_query_length=max_query_length, only_types=only_types)
@@ -298,7 +429,7 @@ def match_algos(sample_list: list, results: list, iterations: int, j: int|str, m
                 # for i, querystring in enumerate(queryset):
                 #     print(querystring)
                 querycount = result_dict['querycount']
-                searchspace = len(result_dict['matchingset'])
+                searchspace = len(set(result_dict['matching_dict'].keys()))
                 query_lengths = 0
                 for query in queryset:
                     query_lengths += len(query.split())
@@ -306,34 +437,50 @@ def match_algos(sample_list: list, results: list, iterations: int, j: int|str, m
                     avg_query_length = query_lengths / len(queryset)
         elif matching == 'sep':
             copy_sample = deepcopy(sample)
-            args = (copy_sample, 1.0, 'smarter', True, max_query_length)
+            args = (copy_sample, supp, 'smarter', True, max_query_length)
+            # pr = cProfile.Profile()
+            # pr.enable()
             result_dict = runFunction(bu_discovery_multidim, timeout, args, {})
-            # result_dict = bu_discovery_multidim(copy_sample, 1.0, 'smarter', domain_seperated=True,
-            #                                     max_query_length=max_query_length)
+
+            # result_dict = bu_discovery_multidim(copy_sample, supp, 'smarter', domain_seperated=True,
+            #                                      max_query_length=max_query_length)
+            # pr.disable()
+            # pr.dump_stats(f"{file_path[:-4]}_sep_{j}_{copy_sample._sample_event_dimension}.prof")
             if result_dict:
                 queryset2 = result_dict['queryset']
                 queryset = queryset2
                 result= time.time()-start
-                searchspace = len(result_dict['matchingset'])
+                searchspace = len(set(result_dict['matching_dict'].keys()))
                 # domain_string = ' '.join(str(e) for e in result_dict['domain_queries'])
         elif matching == 'sps':
             copy_sample = deepcopy(sample)
-            args = (copy_sample, 1.0, 'pattern-split-sep', True, max_query_length)
+            args = (copy_sample, supp, 'pattern-split-sep', True, max_query_length)
             result_dict = runFunction(bu_discovery_multidim, timeout, args, {})
+            # pr = cProfile.Profile()
+            # pr.enable()
             # result_dict = bu_discovery_multidim(copy_sample, 1.0, 'pattern-split-sep', domain_seperated=True,
             #                                     max_query_length=max_query_length)
+            # pr.disable()
+            # pr.dump_stats(f"{file_path[:-4]}_sps_{j}_{copy_sample._sample_event_dimension}.prof")
             if result_dict:
                 result= time.time()-start
                 queryset3 = result_dict['queryset']
                 queryset = queryset3
-                searchspace = len(result_dict['matchingset'])
+                searchspace = len(set(result_dict['matching_dict'].keys()))
                 #max_query= sorted(queryset, key=len)[-1].count(' ') +1
         elif matching == 'ups':
             copy_sample = deepcopy(sample)
-            args = (copy_sample, 1.0, True, True, 'type_first', max_query_length)
+            args = (copy_sample, supp, True, True, 'type_first', max_query_length)
+
             result_dicts = runFunction(discovery_bu_pts_multidim, timeout, args, {})
-            # result_dict = discovery_bu_pts_multidim(copy_sample, 1.0, use_smart_matching=True, discovery_order='type_first',
-            #                                         use_tree_structure=True, max_query_length=max_query_length)[2]
+            # pr = cProfile.Profile()
+            # pr.enable()
+            # result_dicts = discovery_bu_pts_multidim(copy_sample, 1.0, use_smart_matching=True, discovery_order='type_first',
+            #                                         use_tree_structure=True, max_query_length=max_query_length)
+            
+            # pr.disable()
+            # pr.dump_stats(f"{file_path[:-4]}_ups_{j}_{copy_sample._sample_event_dimension}.prof")
+
             if result_dict:
                 result_dict = result_dicts[2]
                 result = time.time()-start
@@ -366,16 +513,26 @@ def match_algos(sample_list: list, results: list, iterations: int, j: int|str, m
         if result_dict:
             results.append([str(sample_size), str(trace_length),str(iterations), matching,str(result),
                         str(j), str(len(queryset)), queryset, mod, searchspace, str(max_sum_type),
-                        str(trace_max_type_occurence), str(max_sum_pattern),
+                        #str(trace_max_type_occurence), 
+                        str(max_sum_pattern),
                         str(max_query_length), str(len(alphabet)), str(mean(pattern_list)), str(avg_query_length)])
             # generate_plots(results=results, file_name='in_progress', y="time", x="iterations", hue="algorithm",kind="scatter")
         columns = ['sample size', 'trace length','iteration', 'algorithm', 'time',
                    'iterations', 'queryset size', 'queryset', 'mode', 'searchspace', 'type sum',
-                   'trace max type occurrence', 'pattern sum', 'max query length',
+                   #'trace max type occurrence',
+                   'pattern sum', 'max query length',
                    'supported types', 'pattern types', 'avg query length']
         dataframe = pd.DataFrame(results, columns=columns)
         dataframe.to_csv(file_path)
         # LOGGER.info('Finished %s', matching)
+    if 'queryset1' in locals():
+        for qs, quset in zip(['queryset2', 'queryset3', 'queryset5'], [queryset2, queryset3, queryset5]):
+            if qs in locals():
+                if queryset1 != quset:
+                    print(queryset1-quset)
+                    print(quset-queryset1)
+                    # assert queryset1 == quset
+                
     return results, columns
 def change_sample(sample_list:list, pattern_type:int, rand_domain:list, pos:int, pos_list:list) ->list:
     """Change a given sample list to a new sample list adding new patterns or supported types.
@@ -471,6 +628,8 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
         grid = sns.catplot(data=dataframe, y=y, x=x, hue=hue , kind='box', col=col, col_wrap=col_wrap)
         grid.set(yscale='log')
         grid.savefig(f'experiment_results/{file_name}.pdf')
+    
+    
     elif kind in ['sota']:
         dataframe.rename(columns={'time':'time[s]'}, inplace=True)
         y='time[s]'
@@ -653,8 +812,8 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
 
     elif kind in ['synt']:
         dataframe.rename(columns={'time':'time[s]'}, inplace=True)
-        dataframe.replace({'streams': r'$E_1:|D|$', 'stream length': r'$E_2:|S|$', 'domain size': r'$E_3: |\mathcal{A}|$',
-                       'types': r'$E_4: |\Gamma_D|$', r'max type': r'$E_5: \rho_S$', 'pattern sum':r'$E_6: \rho_R$'}, inplace=True)
+        dataframe.replace({'streams': r'$E_1:|D|$', 'stream length': r'$E_2:|S|$', 'domain size': r'$E_1: |\mathcal{A}|$',
+                       'types': r'$E_2: |\Gamma_D|$', r'max type': r'$E_3: \rho_S$', 'pattern sum':r'$E_4: \rho_R$'}, inplace=True)
         sns.set_context("paper", font_scale=3)
         plt.rcParams['lines.linewidth'] = 4
         fig, grid = plt.subplots()
@@ -665,12 +824,35 @@ def generate_plots(dataframe:pd.DataFrame, file_name:str, x:str, y:str, hue:str,
         grid.set_titles("{col_name}", y=-0.25, fontsize=30)
         grid.set_xlabels('')
         plt.rcParams['font.size'] = 40
-        sns.move_legend(grid, loc='upper center', mode='expand',
+        sns.move_legend(grid, loc='upper center', fontsize='xx-small',# mode='expand',
                         ncols=4, bbox_to_anchor=(0.1,1.0, 0.5, 0),
                         borderaxespad=0., title=None, frameon=False)
 
 
         grid.savefig(f'experiment_results/{file_name}.pdf')
+
+    elif kind in ['scale']:
+        sns.set_context('poster', font_scale=1.2)
+        dataframe.rename(columns={'time':'time[s]'}, inplace=True)
+        dataframe.replace({'streams': r'$|D|$', 'stream length': r'$|S|$'}, inplace=True)
+        # sns.set_context("paper", font_scale=3)
+        # plt.rcParams['lines.linewidth'] = 4
+        fig, grid = plt.subplots()
+
+        grid = sns.relplot(data=dataframe, y=y, x=x, hue=hue, style=hue, err_style='bars',
+                           kind='line', col=col, col_wrap=col_wrap, facet_kws=facet_kws,
+                             markers=True)
+        grid.set(yscale='log', yticks=[1, 10,100])
+        grid.set_titles("{col_name}", y=-0.4, fontsize=30)
+        grid.set_xlabels('')
+        plt.rcParams['font.size'] = 40
+        # sns.move_legend(grid, loc='upper center', mode='expand',
+        #                 ncols=4, bbox_to_anchor=(0.1,1.0, 0.5, 0),
+        #                 borderaxespad=0., title=None, frameon=False)
+
+
+        grid.savefig(f'experiment_results/{file_name}.pdf')
+
 
     elif kind in ['number_of_types', 'max_pattern', 'trace_length', 'number_of_patterns',
                 'supp_alphabet', 'synt', 'domain_size', 'interleaving', 'max_type']:

@@ -6,7 +6,7 @@ import numpy as np
 import logging
 
 #Logger Configuration:
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+LOG_FORMAT = '| %(message)s'
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel('INFO')
 FILE_HANDLER = logging.StreamHandler()
@@ -179,25 +179,26 @@ if __name__ == "__main__":
     result_path = 'experiment_results'
     if not os.path.isdir(result_path):
         os.mkdir(result_path)
+
     if os.path.isfile(file_path):
         df3 = pd.read_csv(file_path)
     else:
         df3 = type_ratio(iterations=iterations, repetitions= 5, overwrite=False)
         df3['mode'] = 'types'
     
-    LOGGER.info("Finished 1/6")
+    LOGGER.info("Finished 1/4")
 
     
-    iterations = 100
-    file_name = f'trace_length'
-    file_path = f'experiment_results/{file_name}.csv'
-    if os.path.isfile(file_path):
-        df1 = pd.read_csv(file_path)
-    else:
-        df1 = min_trace_length(iterations=iterations, repetitions= 5, overwrite=False)
-    df1['mode'] = 'stream length'
+    # iterations = 100
+    # file_name = f'trace_length'
+    # file_path = f'experiment_results/{file_name}.csv'
+    # if os.path.isfile(file_path):
+    #     df1 = pd.read_csv(file_path)
+    # else:
+    #     df1 = min_trace_length(iterations=iterations, repetitions= 5, overwrite=False)
+    # df1['mode'] = 'stream length'
 
-    LOGGER.info("Finished 2/6")
+    # LOGGER.info("Finished 2/6")
     
     iterations = 101
     file_name = f'domain_size'
@@ -208,17 +209,17 @@ if __name__ == "__main__":
         df6 = domain_size(iterations=iterations, repetitions= 5, overwrite=False)
         df6['mode'] = 'attributes'
 
-    LOGGER.info("Finished 3/6")
-    iterations = 1000
-    file_name = f'streams'
-    file_path = f'experiment_results/{file_name}.csv'
-    if os.path.isfile(file_path):
-        df4 = pd.read_csv(file_path)
-    else:
-        df4 = streams(iterations=iterations, repetitions= 5, overwrite=False)
-    df4['mode'] = 'streams'
+    LOGGER.info("Finished 2/4")
+    # iterations = 1000
+    # file_name = f'streams'
+    # file_path = f'experiment_results/{file_name}.csv'
+    # if os.path.isfile(file_path):
+    #     df4 = pd.read_csv(file_path)
+    # else:
+    #     df4 = streams(iterations=iterations, repetitions= 5, overwrite=False)
+    # df4['mode'] = 'streams'
 
-    LOGGER.info("Finished 4/6")
+    # LOGGER.info("Finished 3/4")
     iterations = 10
     file_name = f'max_pattern'
     file_path = f'experiment_results/{file_name}.csv'
@@ -227,7 +228,7 @@ if __name__ == "__main__":
     else:
         df5 = max_pattern_ratio(iterations=iterations, repetitions= 5, overwrite=False)
         df5['mode'] = 'pattern sum'
-    LOGGER.info("Finished 5/6")
+    LOGGER.info("Finished 3/4")
     iterations = 100
     file_name = f'max_type'
     file_path = f'experiment_results/{file_name}.csv'
@@ -236,18 +237,16 @@ if __name__ == "__main__":
     else:
         df2 = max_type(iterations=iterations, repetitions= 5, overwrite=False)
         df2['mode'] = 'type sum'
-    LOGGER.info("Finished 6/6")
+    LOGGER.info("Finished 4/4")
 
-    frames = [df4, df6, df2, df1, df3, df5]
+    frames = [df6, df2, df3, df5]
     result = pd.concat(frames)
     result.to_csv('experiment_results/synt_plots.csv')
     file_name = 'synt_plots'
     generate_plots(dataframe=result, file_name=file_name, x='iterations', y='time[s]',
-                    hue='algorithm', col = 'mode', col_wrap=3, kind='synt',
+                    hue='algorithm', col = 'mode', col_wrap=2, kind='synt',
                     facet_kws={'sharex': False, 'sharey': False})
     LOGGER.info("Finished generating plot")
-    # save plot of {experiment_name} to 'experiment_results/{experiment_name}.pdf'
-    # Example: plot of 'sota_4_broken' to 'experiment_results/synt_plots.pdf'
 
     # Return to the origin
     os.chdir(CURRENT_WD)

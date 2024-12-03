@@ -1,11 +1,16 @@
 \section{Guidance on Query Discovery}
 \label{sec:instantiation}
+
 To guide the use of our algorithms in application scenarios, we now discuss
+
 how to choose among the algorithms for a
 given stream database
 (\autoref{sec:algo_selection}), before outlining how to give feedback if
 their application turns out to be intractable or ineffective
 (\autoref{sec:feedback}).
+
+
+
 \subsection{Algorithm Selection}
 \label{sec:algo_selection}
 Our idea is to guide the selection of a discovery algorithm based on
@@ -16,17 +21,22 @@ database. To realize this idea, we may leverage database properties that
 (i) can be computed efficiently (i.e., in linear time in
 the size of the streams), and (ii) enable us to separate the
 performance characteristics of the algorithms.
-In general, one may assume that the size
-of the stream database $D$ in terms of the number of streams, $|D|$, and
-their lengths, e.g., given by the minimum length
-$\min_{S\in D}|S|$, are important properties for event query discovery. Yet,
-based on our complexity analysis, we observe a minor
-influence of these properties on the runtime performance of discovery
+
+
+One may assume that the size
+of the stream database $D$, e.g., the number of streams $|D|$ and the
+minimum
+stream length $\min_{S\in D}|S|$, are important properties for event query
+discovery. Yet,
+based on our complexity analysis, we observe that these properties have a
+minor impact on the runtime of discovery
 algorithms. The reason being that the size of a database does not
 characterize the size of the space of candidate queries that needs to be
 explored by the discovery algorithms.
+
 We therefore consider the following
 four properties:
+
 \sstitle{Number of attributes $|\mathcal{A}|$} The property captures the
 number of attributes in the event schema.
 It can be expected to indicate whether the separate or unified
@@ -35,6 +45,7 @@ overhead induced by the merging of separately discovered queries can be
 expected to increase significantly with the number of
 attributes. Hence, a higher value of $|\mathcal{A}|$ shall render D-U-S
 and D-U-C more efficient compared to B-S-S and B-S-C.
+
 \sstitle{Number of supported attribute values $|\Gamma_D|$} We consider the
 size of the supported alphabet, i.e, the number of supported
 attribute values that appear in the database. With a large alphabet, the
@@ -43,6 +54,8 @@ pattern queries can be expected to be beneficial, i.e., B-S-S and B-S-C
 shall be most efficient. The reason being that we expect many pattern
 queries to be present, which, under a unified construction, would always
 be extended with a large number of attribute values during the exploration.
+
+
 \begin{table}[t]
 	\caption{Worst-case complexity of algorithms.}
 	\label{tab:complexities}
@@ -81,9 +94,12 @@ be extended with a large number of attribute values during the exploration.
 	\end{threeparttable}
 	\vspace{-1em}
 \end{table}
+
+
 \sstitle{Max of sum of supported attribute values $\rho_S$} The property is
 the maximum number over all streams and all attributes, of
 the summed up occurrences of all supported attribute values:
+
 \vspace{-1em}
 \small
 $$\rho_S = \max_{\langle e_1, \ldots, e_l\rangle \in
@@ -93,6 +109,8 @@ $$\rho_S = \max_{\langle e_1, \ldots, e_l\rangle \in
 	1, \text{if } e_i.A \in \Gamma_{D}\\
 	0,   \text{otherwise}
 \end{cases}.$$
+	
+
 \normalsize
 \noindent
 If there is a large number of supported values for an attribute, approaches
@@ -100,10 +118,12 @@ that handle attributes separately need to realize numerous merge
 operations for single-attribute queries. This overhead is avoided in D-U-C
 and B-S-C, which can be expected to run more efficiently than
 D-U-S and B-S-S, for higher values of this measure.
+
 \sstitle{Min of sum of repeated attribute values $\rho_R$} The property
 captures the minimum
 number over all streams of the summed
 up repetitions of all attribute values within a stream $S$:
+
 \vspace{-1em}
 \small
 $$\rho_R = \min_{\langle e_1, \ldots, e_l\rangle \in
@@ -118,6 +138,8 @@ $$
 	\Gamma\\
 	0,   \text{otherwise}
 \end{cases}.$$
+
+
 \normalsize
 \noindent
 Intuitively, the repetition of attribute values in a stream increases the
@@ -125,21 +147,31 @@ size of the search space for pattern queries. As the repetitions may
 generally be spread over several attributes, approaches that separate
 discovery per attribute, i.e., D-U-S and B-S-S, can be expected to be more
 efficient than those with comprehensive handling of attributes.
+
 The above properties can be expected to be correlated with differences in
-the runtime performance of the discovery algorithms. However, to guide the
-selection of an algorithm for a given stream database, absolute thresholds
-need to be identified to formulate decision criteria. We later explore this
+the runtime of the discovery algorithms.
+
+We later explore this
 aspect empirically, using a controlled experimental setup.
+
+
+
 \subsection{Feedback based on Algorithmic Performance}
 \label{sec:feedback}
+
+
 In practice, a stream database is
 typically not fixed, but subject to transformations as part of the extraction
-and preparation of the data. Various abstractions, such as
+and preparation of the data.
+Various abstractions, such as
 event selection, projection of attributes, or discretization
-of attribute values, are commonly employed. Therefore, once a discovery
+of attribute values, are commonly employed.
+Therefore, once a discovery
 algorithm does not terminate within
 reasonable time or yields an empty result set, feedback may be derived on
 how these abstractions influence the algorithmic performance.
+
+
 \sstitle{Abstractions to reduce runtime}
 If event query discovery turns out to be intractable, the space of
 candidate queries may be reduced. Specifically, an
@@ -150,14 +182,30 @@ considered application scenario, can be expected to reduce the overall
 runtime of the discovery algorithms. Practically, the attributes with the
 smallest domains are suitable candidates for removal and a specialization of
 their attribute values.
-\sstitle{Abstractions to increase the result size} In case no or only a very
-few descriptive queries are discovered, abstractions
-of the respective data may be adopted to obtain a larger result set. In
-particular, attribute values may be filtered entirely or generalized through
-clustering, e.g., as part of a
-discretization of continuous attributes. Then, the
-domain of the attribute becomes smaller and the number of events carrying
-the same attribute values grows. Hence, it is more likely that regularities
-in the streams can be identified through the discovery of queries.
-The attributes with the largest domains are suitable candidates for the
-filtering and generalization of their values.
+
+
+\sstitle{Abstractions to increase the result size}
+\update{}{In case no or only a very
+few descriptive queries are discovered, the impact of abstractions on the
+result set shall be considered.} \update{M9\\R2O3}{While our discovery
+results are always
+complete and contain only descriptive queries
+for the given database, abstractions may change the input data and, hence,
+the output of discovery. For
+instance, in our cluster monitoring example, jobs are assigned a priority of
+value range $[1,10]$. Let $\langle
+(8),(3),(7)\rangle$ and $\langle (9),(5),(9)\rangle$ be two streams of three
+events over a schema comprising solely the priority attribute. Then,
+discovery would not find any query.
+This changes when abstracting the streams to
+$\langle (high),(medium),(high)\rangle$ and $\langle
+(high),(high),(medium)\rangle$, i.e., reducing the domain of the attribute
+to three values for reasonable ranges of numeric values. Now, queries two
+queries, $\langle (high),(high)\rangle$ and $\langle
+(high),(medium)\rangle$, are discovered.
+The example illustrates that the reduction of attribute domains, e.g., by
+filtering or generalizing values, renders it more
+likely that regularities
+in the streams can be identified through the discovery of queries.}
+As such, the attributes with the largest domains are suitable candidates for
+the filtering and generalization of their values.
