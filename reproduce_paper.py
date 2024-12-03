@@ -409,7 +409,7 @@ if __name__ == "__main__":
             run_ilm = ""
             if args.b_run_extended_il_miner:
                 run_ilm = "--ilm"
-            exp_args = ["", "", "", "", run_ilm, "", ""]
+            exp_args = ["", "", "", "", run_ilm, "", "", "", ""]
             assert len(functions) == len(exp_args)
             try:
                 run_experiments(local_result_dir, PYTHON_COMMAND, functions.keys(), "experiments/", ".verification_file", args=exp_args, estimated_runtimes=list(functions.values()))

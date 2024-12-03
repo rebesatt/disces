@@ -66,14 +66,12 @@ def streams(iterations:int, repetitions:int, overwrite:bool = False):
     file_list = [file.split('.')[0] for file in all_files]
     for file in file_list:
         j = int(file.split('_')[-1])
-        print(j)
         if os.path.isfile(file_path):
             dataframe = pd.read_csv(file_path, header=0, index_col=0)
             columns = dataframe.columns
             if dataframe.loc[dataframe['iterations']==j].shape[0] == 0:
                 new_sample_list = _read_sample(file, sample_path)
                 for i in range(repetitions):
-                    print(i)
                     results, columns = match_algos(sample_list= new_sample_list, results=results, iterations=iterations, j=j, mod='trace length', file_path=file_path)
             else:
                 results = dataframe.values.tolist()
@@ -81,7 +79,6 @@ def streams(iterations:int, repetitions:int, overwrite:bool = False):
             new_sample_list = _read_sample(file, sample_path)
 
             for i in range(repetitions):
-                    print(i)
                     results, columns = match_algos(sample_list= new_sample_list, results=results, iterations=iterations, j=j, mod='trace length', file_path=file_path)
         # columns = ['sample size', 'trace length','iteration', 'algorithm', 'time', 'iterations', 'queryset size', 'queryset', 'mode', 'searchspace', 'max type occourence', 'trace max type occourence', 'min pattern length', 'sample set', 'max query length']
         dataframe = pd.DataFrame(results, columns=columns)
