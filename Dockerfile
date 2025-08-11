@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-pictures \
     texlive-bibtex-extra \
     texlive-latex-recommended \
+    texlive-humanities \
     ghostscript \
     fonts-dejavu \
  && rm -rf /var/lib/apt/lists/*
