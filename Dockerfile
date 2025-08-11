@@ -27,4 +27,4 @@ RUN pip install -r requirements.txt
 COPY . /app
 
 # Default command
-CMD ["python", "reproduce_papyer.py"]
+CMD ["python", "reproduce_paper.py"]
