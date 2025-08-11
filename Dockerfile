@@ -5,26 +5,33 @@ ENV DEBIAN_FRONTEND=noninteractive \
     MPLCONFIGDIR=/tmp/mplconfig \
     PIP_NO_CACHE_DIR=1
 
-# System deps: LaTeX toolchain, fonts; git no longer needed
+# System deps: LaTeX stack (slim but safe), fonts, build helpers
 RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     latexmk \
     texlive-latex-extra \
     texlive-fonts-recommended \
+    texlive-fonts-extra \
     texlive-science \
     texlive-luatex \
+    texlive-pictures \
+    texlive-bibtex-extra \
+    texlive-latex-recommended \
     ghostscript \
     fonts-dejavu \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Python deps first (better layer caching)
+# Install Python deps from the repo's requirements.txt first (better caching)
 COPY requirements.txt /app/requirements.txt
 RUN pip install -r requirements.txt
 
-# Then copy the rest of the repo
+# Copy the rest of the repo
 COPY . /app
 
-# Default command
+# (Optional) fail fast if the script is missing
+RUN test -f reproduce_paper.py || (echo "reproduce_paper.py not found in /app" && ls -la && exit 1)
+
+# Default command: run the paper reproduction script
 CMD ["python", "reproduce_paper.py"]
