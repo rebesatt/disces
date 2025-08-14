@@ -8,6 +8,8 @@ import sys
 import subprocess
 import datetime
 import argparse
+from pathlib import Path
+
 try:
     import requests
 except:
@@ -23,7 +25,7 @@ ZIP_LOCATION = "https://github.com/rebesatt/disces/blob/main/datasets/DISCES.zip
 FINANCE_ZIP_LOCATION = "https://github.com/rebesatt/disces/tree/main/datasets/finance/finance.zip"
 GOOGLE_ZIP_LOCATION = "https://github.com/rebesatt/disces/blob/main/datasets/google/google.zip"
 
-PYTHON_COMMAND = "python"
+PYTHON_COMMAND = f'"{sys.executable}"'
 
 def print_to_std_and_file(str_to_log):
     current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
@@ -308,14 +310,32 @@ def compile_main_pdf():
                         "The " + file_type + " will not be included in the paper.")
 
     os.chdir(project_root + "docs/latex_src/")
+    PDF = Path("main.pdf")
 
-    execute_shell_command('pdflatex --interaction=nonstopmode main.tex')
-    execute_shell_command('bibtex main.aux')
-    execute_shell_command('pdflatex --interaction=nonstopmode main.tex')
-    try:
-        execute_shell_command('pdflatex --interaction=nonstopmode main.tex', stdout_verification="main.pdf")
-    except Exception:
-        print_to_std_and_file("The paper, containing the new figures based on these experiments, could not be generated. Check the log for more details.")
+    # Remove any old PDF before building
+    if PDF.exists():
+        try:
+            PDF.unlink()
+        except Exception as e:
+            print_to_std_and_file(f"Warning: Could not delete old main.pdf: {e}")
+    
+    # LaTeX + BibTeX passes
+    execute_shell_command("pdflatex --interaction=nonstopmode main.tex")
+    execute_shell_command("bibtex main.aux")
+    execute_shell_command("pdflatex --interaction=nonstopmode main.tex")
+    execute_shell_command("pdflatex --interaction=nonstopmode main.tex")
+
+    # try:
+    #     execute_shell_command('pdflatex --interaction=nonstopmode main.tex', stdout_verification="main.pdf")
+    # except Exception:
+    #     print_to_std_and_file("The paper, containing the new figures based on these experiments, could not be generated. Check the log for more details.")
+    #     sys.exit(1)
+
+    # Verify the PDF exists and is non-empty
+    if not PDF.exists() or PDF.stat().st_size == 0:
+        print_to_std_and_file(
+            "The paper, containing the new figures based on these experiments, could not be generated. Check the log for more details."
+        )
         sys.exit(1)
 
     shutil.copyfile("main.pdf", reproduced_main_pfd_file)

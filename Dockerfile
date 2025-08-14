@@ -35,5 +35,9 @@ COPY . /app
 # (Optional) fail fast if the script is missing
 RUN test -f reproduce_paper.py || (echo "reproduce_paper.py not found in /app" && ls -la && exit 1)
 
-# Default command: run the paper reproduction script
-CMD ["python", "reproduce_paper.py"]
+# # Default command: run the paper reproduction script
+# CMD ["python", "reproduce_paper.py"]
+
+# Always run the script; compose `command:` will append flags (e.g., ["-ilm"])
+ENTRYPOINT ["python", "-u", "reproduce_paper.py"]
+CMD []
