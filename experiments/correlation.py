@@ -211,10 +211,16 @@ if __name__ == "__main__":
     ("Database properties", '$|\\Gamma_D|$'),])
     # s = df_corr.style.background_gradient(subset=slice_).hide(axis='index')
     
-    s = df_corr_adapted.style.set_table_styles([
-    {'selector': 'toprule', 'props': ':toprule;'},
-    {'selector': 'midrule', 'props': ':midrule;'},
-    {'selector': 'bottomrule', 'props': ':bottomrule;'},], overwrite=True).format(precision=2).hide(axis='index')
+    s = (
+    df_corr_adapted.style
+    .set_table_styles([
+        {'selector': 'toprule', 'props': ':toprule;'},
+        {'selector': 'midrule', 'props': ':midrule;'},
+        {'selector': 'bottomrule', 'props': ':bottomrule;'},
+    ], overwrite=True)
+    .format("{:.2f}")   # round to 2 decimals
+    .hide(axis='index')
+)
     
     with open(tex_path, 'w', encoding='utf-8') as f:
         f.write(s.to_latex(convert_css=True, 
