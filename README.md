@@ -2,7 +2,7 @@
 
 We propose four algorithms for the discovery of event stream queries given a stream database.
 
-A detailed description of the algorithms can be found in the [DISCES technical report](./disces_technical%20report.pdf).
+A detailed description of the algorithms can be found in the [DISCES technical report](./disces-technical-report.pdf).
 
 ---
 
