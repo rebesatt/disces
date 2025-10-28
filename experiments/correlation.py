@@ -120,10 +120,13 @@ def char_correlation(overwrite: bool = False) -> pd.DataFrame:
 
             result_list.append(get_features(sample_list, results))
             result_df = pd.DataFrame(result_list, columns=['uni', 'sep', 'ups', 'sps', 'sum_pattern', 'sum_types', 'domainsize', 'number_traces', 'trace_length', 'number_types'])
-            result_df["uni"] = result_df["uni"].round(2)
-            result_df["sep"] = result_df["sep"].round(2)
-            result_df["ups"] = result_df["ups"].round(2)
-            result_df["sps"] = result_df["sps"].round(2)
+            # result_df["uni"] = result_df["uni"].round(2)
+            # result_df["sep"] = result_df["sep"].round(2)
+            # result_df["ups"] = result_df["ups"].round(2)
+            # result_df["sps"] = result_df["sps"].round(2)
+            numeric_cols = ["uni", "sep", "ups", "sps"]
+            result_df[numeric_cols] = result_df[numeric_cols].apply(pd.to_numeric, errors="coerce")
+            result_df[numeric_cols] = result_df[numeric_cols].round(2)
 
             result_df.to_csv(result_path)
         
