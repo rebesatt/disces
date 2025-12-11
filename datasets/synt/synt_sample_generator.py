@@ -103,10 +103,10 @@ def types_sample(iterations: int):
 def traces_sample(iterations: int):
     dir_name = f'streams'
     
-    for j in range(2, iterations+1, 100):
+    for j in range(2, iterations+1, iterations//10):
         #Modify sample
         sample_list = non_matching_sample(sample_size=j, trace_length=10)
-        new_sample_list = change_sample(sample_list=sample_list, pattern_type=0, rand_domain=[0], pos=0, pos_list=[1])
+        new_sample_list = change_sample(sample_list=sample_list, pattern_type=0, rand_domain=[0], pos=0, pos_list=[0])
         
         #Save Sample
         file_name = f'sample_{iterations}_{j}'
@@ -205,7 +205,7 @@ if __name__ == "__main__":
     LOGGER.info("1/6")
     domain_size_sample(iterations=101)
     LOGGER.info("2/6")
-    traces_sample(iterations=1000)
+    traces_sample(iterations=100000)
     LOGGER.info("3/6")
     max_pattern_sample(iterations=10)
     LOGGER.info("4/6")
