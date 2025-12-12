@@ -283,7 +283,7 @@ def domain_seperated_discovery(sample, supp, matchtest, max_query_length:int):
         domain_patternset[domain] = all_patternset[domain]
         if matchtest=='smarter':
             result_dict = domain_unified_discovery_smarter( sample=domain_sample, supp=supp, max_query_length = max_query_length, find_descriptive_only=False,
-                                                           all_patternset=domain_patternset)
+                                                        all_patternset=domain_patternset)
         else:
             result_dict = discovery_bu_pts_multidim(domain_sample, supp=supp, use_smart_matching=True, discovery_order='type_first',
                                                     use_tree_structure=True, max_query_length=max_query_length,
@@ -355,7 +355,7 @@ def domain_seperated_discovery(sample, supp, matchtest, max_query_length:int):
             empty_domains.add(dom)
         non_empty_keys[dom] = dom_list
     for dom in empty_domains:
-       del non_empty_keys[dom]
+        del non_empty_keys[dom]
 
     query_pairs_v2  = sorted(product(*non_empty_keys.values()))
     matchings = {}
@@ -477,7 +477,7 @@ def domain_seperated_discovery(sample, supp, matchtest, max_query_length:int):
     
     
     all_variables = dir() 
-  
+
     return result_dict
 
 def add_vertex2tree(poss_query, parent, mixed_query_tree, gen_event, parent_dict, matchtest):
@@ -856,10 +856,10 @@ def _merge_domain_queries(querystring_dict , pos_dict, max_query_length, supp=1.
     trace_id_list = []
     if supp == 1.0:
         for idx in range(sample_size):
-            # query_occ_list = [pos_dict[querystring]['occurences'] for querystring in query_list]
+            query_occ_list = [pos_dict[querystring]['occurences'] for querystring in query_list]
         
-            query_occ_list = [len(pos_dict[querystring]['trace_instances'][idx]) for querystring in 
-                            query_list]
+            # query_occ_list = [len(pos_dict[querystring]['trace_instances'][idx]) for querystring in 
+            #                 query_list]
             trace_product = np.prod(query_occ_list)
             if trace_product <= 3*len(query_occ_list):
                 trace_id_list= [idx]
@@ -868,7 +868,7 @@ def _merge_domain_queries(querystring_dict , pos_dict, max_query_length, supp=1.
                 min_length = trace_product
                 trace_id_list = [idx]
         
-            
+
 
     else:
         # Get the list of keys in all inner dictionaries

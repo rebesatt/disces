@@ -159,17 +159,17 @@ def max_pattern_sample(iterations: int):
 
 def max_type_sample(iterations: int):
     dir_name = f'max_type'
-    sample_list = non_matching_sample(sample_size=2, trace_length=20, domain_size=3)
+    sample_list = non_matching_sample(sample_size=2, trace_length=10, domain_size=3)
 
-    new_sample_list = change_sample(sample_list=sample_list, pattern_type=0, rand_domain=[0,1,2],
-                                            pos=0, pos_list=[0,1])
-    new_sample_list = change_sample(sample_list=new_sample_list, pattern_type=1, rand_domain=[0,1,2],
+    new_sample_list = change_sample(sample_list=sample_list, pattern_type=0, rand_domain=[0],
                                             pos=0, pos_list=[0])
-    new_sample_list = change_sample(sample_list=new_sample_list, pattern_type=1, rand_domain=[0,1,2],
-                                            pos=0, pos_list=[1])
-    first_event = new_sample_list[0].split()[0]
-
+    # new_sample_list = change_sample(sample_list=new_sample_list, pattern_type=1, rand_domain=[0,1],
+    #                                         pos=0, pos_list=[0])
+    # new_sample_list = change_sample(sample_list=new_sample_list, pattern_type=1, rand_domain=[0,1],
+    #                                         pos=0, pos_list=[1])
+    
     # new_sample_list = deepcopy(sample_list)
+    first_event = new_sample_list[0].split()[0]
     for j in range(iterations):
         #Modify Sample
         new_trace = new_sample_list[1] + ' ' + first_event
@@ -197,7 +197,8 @@ def max_type_sample(iterations: int):
             max_sum_type = max(sum_type_list, default=0)
             file_name = f'sample_{iterations}_{max_sum_type}'
             dirname = f'{dir_name}'
-            _write_sample(filename=file_name, sample=new_sample_list, dirname=dirname)
+            saved_sample_list = [new_sample_list[1], new_sample_list[0]]
+            _write_sample(filename=file_name, sample=saved_sample_list, dirname=dirname)
 
 if __name__ == "__main__":
     LOGGER.info("Generating synthetic stream databases")
